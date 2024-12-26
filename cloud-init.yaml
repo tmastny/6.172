@@ -12,6 +12,15 @@ packages:
   - vim
   - htop
   - llvm
+  - linux-tools-generic
+  - sysfsutils
+
+write_files:
+  - path: /etc/sysctl.d/99-perf.conf
+    content: |
+      kernel.perf_event_paranoid = -1
+      kernel.kptr_restrict = 0
 
 runcmd:
+  - sysctl -p /etc/sysctl.d/99-perf.conf
   - echo "Development environment setup complete!"
