@@ -1,0 +1,16 @@
+package_update: true
+package_upgrade: true
+
+packages:
+  - build-essential
+  - gdb
+  - valgrind
+  - clang
+  - lldb
+  - cmake
+  - git
+  - vim
+  - htop
+
+runcmd:
+  - echo "Development environment setup complete!"
