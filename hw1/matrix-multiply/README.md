@@ -1,5 +1,31 @@
 # matrix multiply
 
+## compiler optimizations
+
+debug:
+```
+ubuntu@dev:~/work/hw1/matrix-multiply$ ./matrix_multiply
+Setup
+Running matrix_multiply_run()...
+Elapsed execution time: 2.039689 sec
+```
+
+01:
+```
+ubuntu@dev:~/work/hw1/matrix-multiply$ ./matrix_multiply
+Setup
+Running matrix_multiply_run()...
+Elapsed execution time: 0.392536 sec
+```
+
+03:
+```
+ubuntu@dev:~/work/hw1/matrix-multiply$ ./matrix_multiply
+Setup
+Running matrix_multiply_run()...
+Elapsed execution time: 0.412117 sec
+```
+
 ## cache aware
 
 1000x1000 on VM with 4g memory:
