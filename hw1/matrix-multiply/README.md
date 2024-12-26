@@ -98,3 +98,29 @@ B row i  0     1      2
   
 col1   [b10  b11  b12]
 ```
+
+```bash
+valgrind --tool=cachegrind \
+         --LL=8388608,16,64 \
+         --cache-sim=yes \
+         --branch-sim=yes \
+         ./matrix_multiply 2>&1 |
+         grep "LL\|PROGRAM TOTALS"
+
+==14207== LLi misses:             1,304
+==14207== LLi miss rate:           0.00%
+==14207== LLd misses:           435,230  (      120,497 rd   +       314,733 wr)
+==14207== LLd miss rate:            0.0% (          0.0%     +           0.0%  )
+==14207== LL refs:        1,192,627,075  (1,192,312,041 rd   +       315,034 wr)
+==14207== LL misses:            436,534  (      121,801 rd   +       314,733 wr)
+==14207== LL miss rate:             0.0% (          0.0%     +           0.0%  )
+
+
+==14233== LLi misses:             1,306
+==14233== LLi miss rate:           0.00%
+==14233== LLd misses:           435,231  (      120,498 rd   +       314,733 wr)
+==14233== LLd miss rate:            0.0% (          0.0%     +           0.0%  )
+==14233== LL refs:           63,331,166  (   63,016,132 rd   +       315,034 wr)
+==14233== LL misses:            436,537  (      121,804 rd   +       314,733 wr)
+==14233== LL miss rate:             0.0% (          0.0%     +           0.0%  )
+```
