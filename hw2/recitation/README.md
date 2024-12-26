@@ -36,6 +36,16 @@ Config:
 
 
 Cache misses
+
+```bash
+valgrind --tool=cachegrind \
+    --cache-sim=yes \
+    --branch-sim=yes \
+    --D1=32768,8,64 \
+    --LL=8388608,16,64 \
+    ./sum
+```
+
 ```bash
 ==15052==
 ==15052== I refs:        3,240,108,523
