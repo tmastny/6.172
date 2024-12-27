@@ -1,5 +1,9 @@
 # homework
 
+## write-up 4
+
+
+
 ## write-up 3
 
 inline `sort_i` (with everything else):
@@ -15,12 +19,12 @@ sort_i repeated : Elapsed execution time: 0.008905 sec
 objdump -S ./sort > sort.asm
 ```
 
-`merge_i` is inlined in `sort_i`. 
+`merge_i` is inlined in `sort_i`.
 There is no separate call
 ```asm
 000000000000242c <sort_i>:
 void sort_i(data_t* A, int p, int r);
-     
+
 // A basic merge sort routine that sorts the subarray A[p..r]
 inline void sort_i(data_t* A, int p, int r) {
   assert(A);
@@ -38,12 +42,12 @@ inline static void merge_i(data_t* A, int p, int q, int r) {
     247c:	4b1502d8 	sub	w24, w22, w21
 ```
 
-And we also see that `sort_i` isn't exactly inlined: 
+And we also see that `sort_i` isn't exactly inlined:
 because of the recursive nature we have
 ```asm
 2478:	97ffffed 	bl	242c <sort_i>
 ```
-jumping back to the beginning of the function. 
+jumping back to the beginning of the function.
 (`bl` is sort of equivalent to a function call)
 
 Neither `util.c` functions were inlined, which was surprising to me:
@@ -53,7 +57,7 @@ Neither `util.c` functions were inlined, which was surprising to me:
 25a0:	97ffff07 	bl	21bc <mem_free>
 ```
 What I was missing here is that both `mem_alloc` and `mem_free`
-have system calls, which are not typically inlined. 
+have system calls, which are not typically inlined.
 
 
 But `copy_i` is inlined twice:
@@ -83,11 +87,18 @@ for (int i = 0 ; i < n ; i++) {
     2514:	d37ef58e 	lsl	x14, x12, #2
 ```
 
+### inline sort_i, unline merge
+
+I can't see to force inlining of `sort_i`.
+I can see one problem, is that the compiler won't know
+ahead of time how much of the function to inline,
+because the recursion depth is unknown (or hard to calculate).
+
 
 ## write-up 2
 
 ```bash
-./sort 100000 10 2>/dev/null | grep -E "sort_(a|i)" | grep -v repeated
+./sort 100000 10 2>/dev/null | grep -E "sort_(a|i)" | grep repeated
 ```
 
 inline `merge_i`:
@@ -149,15 +160,15 @@ twice as many instructions and takes about twice the time,
 even the the cache miss rates are *lower* than DEBUG=0.
 Why? It's likely that the additional instructions are
 overhead from `assert` and bound checks. These instructions
-likely have good cache behavior and are very predictable, 
+likely have good cache behavior and are very predictable,
 but nonetheless add to the total number of instructions
-and slow down the program. 
+and slow down the program.
 
-Instructions count only part of the puzzle. 
+Instructions count only part of the puzzle.
 Higher instruction count could lead to faster programs with
 * loop unrolling
 * function lining
-* branch elimination 
+* branch elimination
 * loop defusion
 
 ```bash
