@@ -71,12 +71,11 @@ valgrind --tool=cachegrind \
 cg_annotate cachegrind.out.*
 ```
 
-This line:
-```c
-val = (val + data[l]);
-```
-
-Responsible for 100% of L1 and LL data read misses.
+Why 400M?
+1. Reading `val` (for the addition)
+2. Reading `l` (index)
+3. Reading `data` (base pointer)
+4. Reading `*(data + l)` (actual array element)
 ```
 600,000,000 (12.9%)  // 12.9% of all instructions (Ir)
 0                    // I1 misses
@@ -93,23 +92,37 @@ Responsible for 100% of L1 and LL data read misses.
 0                    // Indirect branch misses
 ```
 
-So
-```python
-all_reads = 400_000_000 / 0.345
-all_read_misses = 99_919_271
-read_miss_rate = all_read_misses / all_reads
+Now our L1 cache is 8MB, which holds 2,097,152 `uint32_t`s. 
+Since we have 10M unique values, we expect the cache to only have
+20% of the values. That bears out in the LL miss rate:
+we do 100M reads and the DLmr is 79M, which is ~20% hit rate.
 
-all_writes = 310_013_830
-all_write_misses = 625_621
-write_miss_rate = all_write_misses / all_writes
+## bring down cache miss rate
 
-all_cache_checks = all_reads + all_writes
-all_cache_misses = all_read_misses + all_write_misses
+The goal of `sum` is to sum 100M random values.
 
-print(f"Read miss rate: {read_miss_rate:.1%}")
-print(f"Write miss rate: {write_miss_rate:.1%}")
-print(f"Total cache miss rate: {all_cache_misses / all_cache_checks:.1%}")
-# Read miss rate: 8.6%
-# Write miss rate: 0.2%
-# Total cache miss rate: 6.8%
+In this case, 
+```c
+int l = rand_r(&seed) % U;
+val = (val + data[l]);
+```
+`data[l]` is redundant. `l` is already
+a random value within the range, 
+because `data` is just an array from 0 to 10M:
+
+```c
+for (i = 0; i < U; i++) {
+  data[i] = i;
+}
+```
+
+So we don't have to allocate that array at all.
+To compute the sum, we just need to do this:
+```c
+data_t val = 0;
+data_t seed = 42;
+for (i = 0; i < N; i++) {
+  int l = rand_r(&seed) % U;
+  val = (val + l);
+}
 ```
