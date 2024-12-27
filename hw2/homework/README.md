@@ -1,7 +1,65 @@
 # homework
 
+## write-up 6
+
+
+
 ## write-up 5
 
+Insertion sort is well know to be faster than merge or quick sort
+for small arrays (say 5 to 50 elements) and when arrays are
+"almost sorted".
+
+We implemented a *coarsening* hybrid sort, where instead of the base
+elements of merge sort beign swapped, we use insertion sort.
+
+This gives the largest speedup so far! At `THRESHOLD=10`:
+```bash
+sort_a repeated : Elapsed execution time: 0.027891 sec
+sort_i repeated : Elapsed execution time: 0.025476 sec
+sort_p repeated : Elapsed execution time: 0.026272 sec
+sort_c repeated : Elapsed execution time: 0.016586 sec
+sort_a repeated : Elapsed execution time: 0.052069 sec
+sort_i repeated : Elapsed execution time: 0.053502 sec
+sort_p repeated : Elapsed execution time: 0.050710 sec
+sort_c repeated : Elapsed execution time: 0.027676 sec
+```
+
+At `THRESHOLD=50`:
+```bash
+sort_a repeated : Elapsed execution time: 0.035705 sec
+sort_i repeated : Elapsed execution time: 0.047204 sec
+sort_p repeated : Elapsed execution time: 0.040744 sec
+sort_c repeated : Elapsed execution time: 0.032537 sec
+sort_a repeated : Elapsed execution time: 0.069789 sec
+sort_i repeated : Elapsed execution time: 0.088234 sec
+sort_p repeated : Elapsed execution time: 0.077886 sec
+sort_c repeated : Elapsed execution time: 0.057883 sec
+```
+
+At `THRESHOLD=20`:
+```bash
+sort_a repeated : Elapsed execution time: 0.046504 sec
+sort_i repeated : Elapsed execution time: 0.041429 sec
+sort_p repeated : Elapsed execution time: 0.037693 sec
+sort_c repeated : Elapsed execution time: 0.027662 sec
+sort_a repeated : Elapsed execution time: 0.088169 sec
+sort_i repeated : Elapsed execution time: 0.077203 sec
+sort_p repeated : Elapsed execution time: 0.078260 sec
+sort_c repeated : Elapsed execution time: 0.060203 sec
+```
+
+At `THRESHOLD=5`:
+```bash
+sort_a repeated : Elapsed execution time: 0.048825 sec
+sort_i repeated : Elapsed execution time: 0.045397 sec
+sort_p repeated : Elapsed execution time: 0.040919 sec
+sort_c repeated : Elapsed execution time: 0.035364 sec
+sort_a repeated : Elapsed execution time: 0.097272 sec
+sort_i repeated : Elapsed execution time: 0.089350 sec
+sort_p repeated : Elapsed execution time: 0.082878 sec
+sort_c repeated : Elapsed execution time: 0.056631 sec
+```
 
 ## write-up 4
 

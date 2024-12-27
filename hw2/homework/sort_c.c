@@ -24,6 +24,8 @@
 #include "./util.h"
 #include "./isort.h"
 
+#define THRESHOLD 10
+
 // Function prototypes
 static void merge_c(data_t* A, int p, int q, int r);
 static void copy_c(data_t* source, data_t* dest, int n);
@@ -31,14 +33,18 @@ void sort_c(data_t* A, int p, int r);
 
 // A basic merge sort routine that sorts the subarray A[p..r]
 void sort_c(data_t* A, int p, int r) {
-  isort(&A[p], &A[r]);
-  // assert(A);
-  // if (p < r) {
-  //   int q = (p + r) / 2;
-  //   sort_c(A, p, q);
-  //   sort_c(A, q + 1, r);
-  //   merge_c(A, p, q, r);
-  // }
+  assert(A);
+  if (p < r) {
+    if (r - p <= THRESHOLD) {
+      isort(&A[p], &A[r]);
+      return;
+    }
+
+    int q = (p + r) / 2;
+    sort_c(A, p, q);
+    sort_c(A, q + 1, r);
+    merge_c(A, p, q, r);
+  }
 }
 
 // A merge routine. Merges the sub-arrays A [p..q] and A [q + 1..r].
@@ -60,8 +66,8 @@ inline static void merge_c(data_t* A, int p, int q, int r) {
   }
 
   copy_c(&(A[p]), left, n1);
-  
-  
+
+
   copy_c(&(A[q + 1]), right, n2);
   left[n1] = UINT_MAX;
   right[n2] = UINT_MAX;
@@ -89,4 +95,3 @@ inline static void copy_c(data_t* source, data_t* dest, int n) {
       *dest++ = *source++;
   }
 }
-
