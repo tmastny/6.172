@@ -64,3 +64,20 @@ valgrind --tool=cachegrind \
 ==15052== LL misses:        79,732,038  ( 79,106,446 rd   +     625,592 wr)
 ==15052== LL miss rate:            2.0% (        2.1%     +         0.2%  )
 ```
+
+
+Why 400M?
+1. Reading `val` (for the addition)
+2. Reading `l` (index)
+3. Reading `data` (base pointer)
+4. Reading `*(data + l)` (actual array element)
+```
+Ir_________________ I1mr____ ILmr____ Dr_________________ D1mr_______________ DLmr_______________ Dw_________________ D1mw___________ DLmw___________ Bc_________________ Bcm_____ Bi Bim
+500,000,000 (13.2%) 0        0        400,000,000 (42.1%) 99,919,280 (100.0%) 79,104,020 (100.0%) 100,000,000 (19.2%)       0               0                   0         0         0   0      val = (val + data[l]);
+```
+
+Now our L1 cache is 8MB, which holds 2,097,152 `uint32_t`s. 
+Since we have 10M unique values, we expect the cache to only have
+20% of the values. That bears out in the LL miss rate:
+we do 100M reads and the DLmr is 79M, which is ~20% hit rate.
+
