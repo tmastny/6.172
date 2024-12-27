@@ -1,7 +1,29 @@
 # homework
 
+## write-up 5
+
+
 ## write-up 4
 
+Array accesses are a special case of pointer arithmetic,
+where `a[i]` is equivalent to `*(a + i)`.
+
+However, `*a++` can be more efficient because most
+CPU architectures have a special instruction for
+getting the current value and incrementing the pointer register.
+On ARM, we might have `LDR r0, [r1], #4` which loads the value
+at the address in `r1` into `r0` and increments `r1` by 4.
+
+So we can apply this to `copy_p` and the `merge_p` functions.
+
+```bash
+sort_a repeated : Elapsed execution time: 0.049499 sec
+sort_i repeated : Elapsed execution time: 0.042063 sec
+sort_p repeated : Elapsed execution time: 0.045845 sec
+sort_a repeated : Elapsed execution time: 0.095740 sec
+sort_i repeated : Elapsed execution time: 0.081043 sec
+sort_p repeated : Elapsed execution time: 0.085785 sec
+```
 
 
 ## write-up 3
