@@ -29,7 +29,7 @@ static void copy_i(data_t* source, data_t* dest, int n);
 void sort_i(data_t* A, int p, int r);
 
 // A basic merge sort routine that sorts the subarray A[p..r]
-inline __attribute__((inline)) void sort_i(data_t* A, int p, int r) {
+void sort_i(data_t* A, int p, int r) {
   assert(A);
   if (p < r) {
     int q = (p + r) / 2;
@@ -41,7 +41,7 @@ inline __attribute__((inline)) void sort_i(data_t* A, int p, int r) {
 
 // A merge routine. Merges the sub-arrays A [p..q] and A [q + 1..r].
 // Uses two arrays 'left' and 'right' in the merge operation.
-static void merge_i(data_t* A, int p, int q, int r) {
+inline static void merge_i(data_t* A, int p, int q, int r) {
   assert(A);
   assert(p <= q);
   assert((q + 1) <= r);
