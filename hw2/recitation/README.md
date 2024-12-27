@@ -64,3 +64,52 @@ valgrind --tool=cachegrind \
 ==15052== LL misses:        79,732,038  ( 79,106,446 rd   +     625,592 wr)
 ==15052== LL miss rate:            2.0% (        2.1%     +         0.2%  )
 ```
+
+## cache misses by line
+
+```bash
+cg_annotate cachegrind.out.*
+```
+
+This line:
+```c
+val = (val + data[l]);
+```
+
+Responsible for 100% of L1 and LL data read misses.
+```
+600,000,000 (12.9%)  // 12.9% of all instructions (Ir)
+0                    // I1 misses
+0                    // IL misses
+400,000,000 (34.5%)  // 34.5% of all data reads (Dr)
+99,919,271 (100.0%)  // 100% of all L1 data read misses (D1mr)
+79,104,010 (100.0%)  // 100% of all LL data read misses (DLmr)
+100,000,000 (16.1%)  // 16.1% of all data writes (Dw)
+0                    // D1 write misses
+0                    // DL write misses
+0                    // Branch conditions
+0                    // Branch mispredictions
+0                    // Indirect branches
+0                    // Indirect branch misses
+```
+
+So
+```python
+all_reads = 400_000_000 / 0.345
+all_read_misses = 99_919_271
+read_miss_rate = all_read_misses / all_reads
+
+all_writes = 310_013_830
+all_write_misses = 625_621
+write_miss_rate = all_write_misses / all_writes
+
+all_cache_checks = all_reads + all_writes
+all_cache_misses = all_read_misses + all_write_misses
+
+print(f"Read miss rate: {read_miss_rate:.1%}")
+print(f"Write miss rate: {write_miss_rate:.1%}")
+print(f"Total cache miss rate: {all_cache_misses / all_cache_checks:.1%}")
+# Read miss rate: 8.6%
+# Write miss rate: 0.2%
+# Total cache miss rate: 6.8%
+```
