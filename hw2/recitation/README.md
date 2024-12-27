@@ -81,3 +81,32 @@ Since we have 10M unique values, we expect the cache to only have
 20% of the values. That bears out in the LL miss rate:
 we do 100M reads and the DLmr is 79M, which is ~20% hit rate.
 
+## bring down cache miss rate
+
+The goal of `sum` is to sum 100M random values.
+
+In this case, 
+```c
+int l = rand_r(&seed) % U;
+val = (val + data[l]);
+```
+`data[l]` is redundant. `l` is already
+a random value within the range, 
+because `data` is just an array from 0 to 10M:
+
+```c
+for (i = 0; i < U; i++) {
+  data[i] = i;
+}
+```
+
+So we don't have to allocate that array at all.
+To compute the sum, we just need to do this:
+```c
+data_t val = 0;
+data_t seed = 42;
+for (i = 0; i < N; i++) {
+  int l = rand_r(&seed) % U;
+  val = (val + l);
+}
+```
