@@ -72,6 +72,14 @@ static inline void copy_data(data_t* data, data_t* data_bcup, int N) {
   }
 }
 
+static int compare(const void* a, const void* b) {
+    data_t va = *(const data_t*)a;
+    data_t vb = *(const data_t*)b;
+    if (va < vb) return -1;    // a should come before b
+    if (va > vb) return 1;     // a should come after b
+    return 0;                  // a and b are equal
+}
+
 static inline int post_process(data_t* data, data_t* data_bcup, int N,
                                int printFlag, char* name, int begin, int end) {
   int result = 1;
@@ -80,6 +88,21 @@ static inline int post_process(data_t* data, data_t* data_bcup, int N,
     printf("Data after sort\n");
     display_array(data, N);
   }
+
+  // Check that sorted portion is a permutation of original data
+  data_t* check_array = malloc((end - begin + 1) * sizeof(data_t));
+  memcpy(check_array, &data_bcup[begin], (end - begin + 1) * sizeof(data_t));
+  qsort(check_array, end - begin + 1, sizeof(data_t), compare);
+
+  // Now both should be identical if one is a permutation of the other
+  for (int i = begin; i <= end; i++) {
+      if (data[i] != check_array[i - begin]) {
+          TEST_FAIL("Values were lost or duplicated!\n");
+          result = 0;
+          break;
+      }
+  }
+  free(check_array);
 
   // check if the array is unchanged from data[0..begin-1]
   for (int i = 0 ; i < begin ; i++) {
