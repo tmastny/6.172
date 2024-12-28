@@ -2,7 +2,7 @@
 
 ## write-up 7
 
-
+How to profile?
 
 
 ```bash
@@ -76,13 +76,19 @@ So working the example again,
 ```
 
 But could there be any other potential for overwrites?
-No: because left and right are the "same size", if left
-fills in `a_k` first, `right_i` will point to same location
-and `a_k` will point at `right_i`.
+No: because the read pointer is always at or ahead of the
+write pointer. If `left_i` was always less than `right_i`,
+the `a_k` would advance to `right_i` but no further:
+the rest of the writes would happen from `right_i` position.
 
-Likewise, if `right` fills in `a_k` first, `left_i` will point
-will start overwriting the `right` half of the array, which was already
-processed.
+And likewise, if `right_i` was always less than `left_i`,
+then `right_i` would always advance ahead of `a_k`.
+
+### performance
+
+At `./sort 100000 10` the performance isn't much better
+for the random case (consistently slightly worse in fact
+even at higher repeats and a 10x larger array).
 
 ```bash
 sort_a repeated : Elapsed execution time: 0.048180 sec
@@ -97,6 +103,155 @@ sort_p repeated : Elapsed execution time: 0.071978 sec
 sort_c repeated : Elapsed execution time: 0.045692 sec
 sort_m repeated : Elapsed execution time: 0.044402 sec
 ```
+
+So let's look into memory usage.
+
+```bash
+valgrind --tool=massif --alloc-fn='mem_alloc' ./sort 100000 1
+ms_print massif.out.* | grep merge_m
+->05.88% (50,004B) 0x10B7CD: merge_m (sort_m.c:60)
+->11.10% (100,004B) 0x10B7CD: merge_m (sort_m.c:60)
+->19.98% (200,004B) 0x10B7CD: merge_m (sort_m.c:60)
+```
+
+```bash
+valgrind --tool=massif --alloc-fn='mem_alloc' ./sort 100000 1
+ms_print massif.out.* | grep merge_c
+->05.55% (50,004B) 0x10AD51: merge_c (sort_c.c:60)
+->05.55% (50,004B) 0x10AD60: merge_c (sort_c.c:61)
+->09.99% (100,004B) 0x10AD51: merge_c (sort_c.c:60)
+->09.99% (100,004B) 0x10AD60: merge_c (sort_c.c:61)
+->05.88% (50,004B) 0x10AD60: merge_c (sort_c.c:61)
+->16.65% (200,004B) 0x10AD51: merge_c (sort_c.c:60)
+->16.65% (200,004B) 0x10AD60: merge_c (sort_c.c:61)
+->03.03% (25,004B) 0x10AD60: merge_c (sort_c.c:61)
+```
+
+Definitely less memory across the snapshots, but it's slower.
+Let's look at the instructions/cache/branch prediction to see what's going on:
+
+
+`merge_c`:
+```bash
+valgrind \
+    --tool=cachegrind \
+    --cache-sim=yes \
+    --branch-sim=yes \
+    ./sort 100000 1
+
+cg_annotate cachegrind.out.* \
+    --no-annotate \
+    --show=Ir,I1mr,ILmr,Dr,D1mr,DLmr,Dw,D1mw,DLmw,Bc,Bcm |\
+    grep -E 'sort_[cm]' |
+    grep '<'
+```
+
+`merge_m`:
+| Category           | Metric | Description                        | Count     | % of Program |
+|-------------------|--------|----------------------------------- |-----------|--------------|
+| Instructions      | Ir     | Instructions executed              | 26,327,681| 34.0%        |
+| Instruction Cache | I1mr   | L1 instruction cache misses        | 13        | 0.7%         |
+|                   | ILmr   | Last-level instruction cache misses| 12        | 0.7%         |
+| Data Reads        | Dr     | Data reads                         | 3,217,374 | 16.0%        |
+|                   | D1mr   | L1 data read misses               | 43,508    | 27.7%        |
+|                   | DLmr   | Last-level data read misses       | 0         | 0.0%         |
+| Data Writes       | Dw     | Data writes                        | 1,945,231 | 17.8%        |
+|                   | D1mw   | L1 data write misses              | 36,292    | 29.3%        |
+|                   | DLmw   | Last-level data write misses      | 4,701     | 17.4%        |
+| Branch Prediction | Bc     | Conditional branches executed      | 3,089,925 | 26.7%        |
+|                   | Bcm    | Conditional branch mispredictions  | 61,220    | 5.7%         |
+
+`merge_c`:
+| Category           | Metric | Description                        | Count     | % of Program |
+|-------------------|--------|----------------------------------- |-----------|--------------|
+| Instructions      | Ir     | Instructions executed              | 22,026,713| 29.1%        |
+| Instruction Cache | I1mr   | L1 instruction cache misses        | 17        | 1.0%         |
+|                   | ILmr   | Last-level instruction cache misses| 16        | 1.0%         |
+| Data Reads        | Dr     | Data reads                         | 3,528,341 | 16.7%        |
+|                   | D1mr   | L1 data read misses               | 61,234    | 35.0%        |
+|                   | DLmr   | Last-level data read misses       | 0         | 0.0%         |
+| Data Writes       | Dw     | Data writes                        | 2,243,020 | 19.2%        |
+|                   | D1mw   | L1 data write misses              | 64,227    | 42.4%        |
+|                   | DLmw   | Last-level data write misses      | 9,412     | 32.9%        |
+| Branch Prediction | Bc     | Conditional branches executed      | 1,230,693 | 12.3%        |
+|                   | Bcm    | Conditional branch mispredictions  | 71,014    | 6.5%         |
+
+`merge_m` has about 4 million more instructions!
+We can see what's going on looking at the annotated assembly:
+```bash
+perf record ./sort 100000 1 #for each one
+perf annotate --stdio --source --symbol=sort_c -M intel > perf_merge_[cm].txt
+```
+
+`merge_c`, with the for loop does a look unrolling,
+processing two elements at a time:
+```asm
+: 262  for (int k = p; k <= r; k++) {
+# edge case instructions, when we have an odd number of elements
+# ...
+: 287  if (*left_i <= *right_j) {
+ 
+# load left and right
+3.23 :   2c10:   mov    edi,DWORD PTR [rcx]
+13.71 :   2c12:   mov    r8d,DWORD PTR [rdx]
+# compare
+3.23 :   2c15:   xor    r9d,r9d
+0.00 :   2c18:   xor    r10d,r10d
+0.00 :   2c1b:   cmp    edi,r8d
+6.45 :   2c1e:   seta   r9b
+4.03 :   2c22:   setbe  r10b
+
+# store smallest value in A (rax)
+0.00 :   2c26:   cmovb  r8d,edi
+0.81 :   2c2a:   lea    rdi,[rcx+r10*4]
+1.61 :   2c2e:   mov    DWORD PTR [rax+rsi*4],r8d
+
+# immediately load the next values for left and right
+8.87 :   2c32:   mov    ecx,DWORD PTR [rcx+r10*4]
+13.71 :   2c36:   mov    r8d,DWORD PTR [rdx+r9*4]
+# compare
+0.81 :   2c3a:   xor    r10d,r10d
+0.00 :   2c3d:   xor    r11d,r11d
+0.00 :   2c40:   cmp    ecx,r8d
+4.84 :   2c43:   seta   r10b
+8.87 :   2c47:   setbe  r11b
+0.00 :   2c4b:   lea    rdx,[rdx+r9*4]
+# store smallest value in A (rax)
+0.00 :   2c4f:   cmovb  r8d,ecx
+4.03 :   2c53:   lea    rcx,[rdi+r11*4]
+1.61 :   2c57:   lea    rdx,[rdx+r10*4]
+0.81 :   2c5b:   mov    DWORD PTR [rax+rsi*4+0x4],r8d
+
+# increment by 2
+: 310  for (int k = p; k <= r; k++) {
+8.06 :   2c60:   add    rsi,0x2
+0.00 :   2c64:   cmp    ebx,esi
+0.00 :   2c66:   jne    2c10 <sort_c+0x330>
+```
+
+While `merge_m` only compares one element per loop:
+```asm
+: 165  if (*left_i <= *right_j) {
+5.26 :   3510:   mov    r14d,DWORD PTR [rdi]
+22.22 :   3513:   mov    r15d,DWORD PTR [r10]
+18.13 :   3516:   xor    ebx,ebx
+1.17 :   3518:   xor    r12d,r12d
+0.00 :   351b:   cmp    r14d,r15d
+5.26 :   351e:   seta   bpl
+5.26 :   3522:   setbe  r12b
+5.26 :   3526:   cmovb  r15d,r14d
+1.75 :   352a:   lea    rdi,[rdi+r12*4]
+2.92 :   352e:   mov    DWORD PTR [rcx],r15d
+16.37 :   3531:   add    rcx,0x4
+: 177  while (left_i < left + n1 && right_j <= &A[r]) {
+0.00 :   3535:   cmp    rdi,r9
+0.00 :   3538:   jae    3546 <sort_m+0x1d6>
+0.00 :   353a:   mov    bl,bpl
+0.00 :   353d:   lea    r10,[r10+rbx*4]
+5.85 :   3541:   cmp    r10,r11
+0.00 :   3544:   jbe    3510 <sort_m+0x1a0>
+```
+
 
 
 ## write-up 5
