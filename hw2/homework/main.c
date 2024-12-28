@@ -50,6 +50,8 @@ extern void sort_i(data_t*, int, int);
 extern void sort_p(data_t*, int, int);
 extern void sort_c(data_t*, int, int);
 extern void sort_m(data_t*, int, int);
+extern void sort_m2(data_t*, int, int);
+extern void sort_m3(data_t*, int, int);
 extern void sort_f(data_t*, int, int);
 
 int main(int argc, char** argv) {
@@ -66,6 +68,8 @@ int main(int argc, char** argv) {
     {&sort_p, "sort_p repeated\t"},
     {&sort_c, "sort_c repeated\t"},
     {&sort_m, "sort_m repeated\t"},
+    // {&sort_m2, "sort_m2 repeated\t"},
+    // {&sort_m3, "sort_m3 repeated\t"},
     {&sort_f, "sort_f repeated\t"},
   };
   const int kNumOfFunc = sizeof(testFunc) / sizeof(testFunc[0]);

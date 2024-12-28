@@ -252,6 +252,8 @@ While `merge_m` only compares one element per loop:
 0.00 :   3544:   jbe    3510 <sort_m+0x1a0>
 ```
 
+I tried other ways to write `merge_m` in `sort_m2` and `sort_m3`,
+but I couldn't get the loop to unroll.
 
 
 ## write-up 5
