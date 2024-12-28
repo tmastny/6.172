@@ -21,9 +21,73 @@
  **/
 
 
-#include "./util.h"
+ #include "./util.h"
+ #include "./isort.h"
 
-void sort_m(data_t* A, int p, int r) {
-  printf("Unimplemented!\n");
-}
+ #define THRESHOLD 10
 
+ // Function prototypes
+ static void merge_m(data_t* A, int p, int q, int r);
+ static void copy_m(data_t* source, data_t* dest, int n);
+ void sort_m(data_t* A, int p, int r);
+
+ // A basic merge sort routine that sorts the subarray A[p..r]
+ void sort_m(data_t* A, int p, int r) {
+   assert(A);
+   if (p < r) {
+     if (r - p <= THRESHOLD) {
+       isort(&A[p], &A[r]);
+       return;
+     }
+
+     int q = (p + r) / 2;
+     sort_m(A, p, q);
+     sort_m(A, q + 1, r);
+     merge_m(A, p, q, r);
+   }
+ }
+
+ // A merge routine. Merges the sub-arrays A [p..q] and A [q + 1..r].
+ // Uses two arrays 'left' and 'right' in the merge operation.
+ inline static void merge_m(data_t* A, int p, int q, int r) {
+   assert(A);
+   assert(p <= q);
+   assert((q + 1) <= r);
+   int n1 = q - p + 1;
+   int n2 = r - q;
+
+   data_t* left = A;
+   data_t* right = 0;
+   mem_alloc(&right, n2 + 1);
+   if (left == NULL || right == NULL) {
+     mem_free(&right);
+     return;
+   }
+
+   copy_m(&(A[q + 1]), right, n2);
+
+   left[n1] = UINT_MAX;
+   right[n2] = UINT_MAX;
+
+   data_t* a_k = &A[p];
+   data_t* left_i = left;
+   data_t* right_j = right;
+   for (int k = p; k <= r; k++) {
+     if (*left_i <= *right_j) {
+       *a_k++ = *left_i++;
+     } else {
+       *a_k++ = *right_j++;
+     }
+   }
+
+   mem_free(&right);
+ }
+
+ inline static void copy_m(data_t* source, data_t* dest, int n) {
+   assert(dest);
+   assert(source);
+
+   for (int i = 0 ; i < n ; i++) {
+       *dest++ = *source++;
+   }
+ }

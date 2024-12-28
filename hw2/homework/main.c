@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     {&sort_i, "sort_i repeated\t"},
     {&sort_p, "sort_p repeated\t"},
     {&sort_c, "sort_c repeated\t"},
-    //{&sort_m, "sort_m\t\t"},
+    {&sort_m, "sort_m repeated\t"},
     //{&sort_f, "sort_f\t\t"},
   };
   const int kNumOfFunc = sizeof(testFunc) / sizeof(testFunc[0]);

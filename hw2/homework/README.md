@@ -2,6 +2,41 @@
 
 ## write-up 6
 
+The adjustment here was very simple to implement:
+the algorithm was written in a way where we just needed
+to *rename* the `left` array to `A`, like this:
+```c
+data_t* left = A;
+// ...
+data_t* a_k = &A[p];
+data_t* left_i = left;
+data_t* right_j = right;
+for (int k = p; k <= r; k++) {
+  if (*left_i <= *right_j) {
+    *a_k++ = *left_i++;
+  } else {
+    *a_k++ = *right_j++;
+  }
+}
+
+```
+It's fun that that works out, but it's not 100% better:
+the first branch condition doesn't need to work, because
+we don't need to reassign `left_i` to `a_k`. 
+
+```bash
+sort_a repeated : Elapsed execution time: 0.012701 sec
+sort_i repeated : Elapsed execution time: 0.012441 sec
+sort_p repeated : Elapsed execution time: 0.011911 sec
+sort_c repeated : Elapsed execution time: 0.008163 sec
+sort_m repeated : Elapsed execution time: 0.007713 sec
+
+sort_a repeated : Elapsed execution time: 0.024914 sec
+sort_i repeated : Elapsed execution time: 0.024225 sec
+sort_p repeated : Elapsed execution time: 0.022705 sec
+sort_c repeated : Elapsed execution time: 0.015137 sec
+sort_m repeated : Elapsed execution time: 0.014000 sec
+```
 
 
 ## write-up 5
