@@ -21,9 +21,113 @@
  **/
 
 
-#include "./util.h"
+#include "./isort.h"
+#include <unistd.h>
 
-void sort_f(data_t* A, int p, int r) {
-  printf("Unimplemented!\n");
+ #define THRESHOLD 10
+
+ // Function prototypes
+ static void merge_f(data_t* A, int p, int q, int r);
+ static void copy_f(data_t* source, data_t* dest, int n);
+ void sort_f(data_t* A, int p, int r);
+
+ int allocs = 0;
+ data_t* allocated_array = 0;
+ 
+inline void mem_alloc_f(data_t** space, int size) {
+    if (allocs > 0) {
+       *space = allocated_array; 
+       allocs += 1;
+       return;
+    }
+    
+    allocated_array = (data_t*) malloc(sizeof(data_t) * size);
+    *space = allocated_array;
+    if (*space == NULL) {
+        printf("out of memory...\n");
+    }
+    allocs = 1;
 }
+ 
+inline void mem_free_f(data_t** space) {
+    allocs -= 1;
+    if (allocs > 0) {
+        return;
+    }
+    
+    free(*space);
+    *space = 0;
+}
+ 
+ 
+ // A basic merge sort routine that sorts the subarray A[p..r]
+ void sort_f(data_t* A, int p, int r) {
+   assert(A);
+   
+   static int first_call = 1;
+   if (first_call) {
+       first_call = 0;
+       mem_alloc_f(&allocated_array, r - p + 1);
+   }
+   
+   if (p < r) {
+     if (r - p <= THRESHOLD) {
+       isort(&A[p], &A[r]);
+       return;
+     }
+
+     int q = (p + r) / 2;
+     sort_f(A, p, q);
+     sort_f(A, q + 1, r);
+     merge_f(A, p, q, r);
+   }
+ }
+
+ // A merge routine. Merges the sub-arrays A [p..q] and A [q + 1..r].
+ // Uses two arrays 'left' and 'right' in the merge operation.
+ inline static void merge_f(data_t* A, int p, int q, int r) {
+    assert(A);
+    assert(p <= q);
+    assert((q + 1) <= r);
+    int n1 = q - p + 1;
+
+
+    data_t* left = 0;
+    mem_alloc_f(&left, n1 + 1);
+    if (left == NULL) {
+        mem_free_f(&left);
+        return;
+    }
+
+    copy_f(&(A[p]), left, n1);
+    data_t* right = &A[q + 1];
+
+    left[n1] = UINT_MAX;
+
+    data_t* a_k = &A[p];
+    data_t* left_i = left;
+    data_t* right_j = right;
+    while (left_i < left + n1 && right_j <= &A[r]) {
+        if (*left_i <= *right_j) {
+            *a_k++ = *left_i++;
+        } else {
+            *a_k++ = *right_j++;
+        }
+    }
+
+    while (left_i < left + n1) {
+        *a_k++ = *left_i++;
+    }
+
+    mem_free_f(&left);
+ }
+
+ inline static void copy_f(data_t* source, data_t* dest, int n) {
+   assert(dest);
+   assert(source);
+
+   for (int i = 0 ; i < n ; i++) {
+       *dest++ = *source++;
+   }
+ }
 

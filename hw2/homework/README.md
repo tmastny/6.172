@@ -1,22 +1,43 @@
 # homework
 
+## write-up 7
+
+
+
+
+```bash
+sort_a repeated : Elapsed execution time: 0.043307 sec
+sort_i repeated : Elapsed execution time: 0.039047 sec
+sort_p repeated : Elapsed execution time: 0.043365 sec
+sort_c repeated : Elapsed execution time: 0.022954 sec
+sort_m repeated : Elapsed execution time: 0.032067 sec
+sort_f repeated : Elapsed execution time: 0.030694 sec
+
+sort_a repeated : Elapsed execution time: 0.088720 sec
+sort_i repeated : Elapsed execution time: 0.082620 sec
+sort_p repeated : Elapsed execution time: 0.089706 sec
+sort_c repeated : Elapsed execution time: 0.052727 sec
+sort_m repeated : Elapsed execution time: 0.044793 sec
+sort_f repeated : Elapsed execution time: 0.048354 sec
+```
+
 ## write-up 6
 
 The trick here is to understand how to use the original
 array without overwriting values we'll need in the future
-for merging. 
+for merging.
 
 Let's take this array `A`:
 ```
 [6, 7, 10, | 4, 5, 9] -> [6, 7, 10], [4, 5, 9]
 ```
 With two separate arrays, the original values are always
-available in the copies, so we can overwrite the original. 
+available in the copies, so we can overwrite the original.
 We start with `left_i` and `right_i` pointing
-at the first read values of the array, 
-copy the smallest one to `A` and increment that pointer. 
+at the first read values of the array,
+copy the smallest one to `A` and increment that pointer.
 
-Using only one temporary array, we need to make a choice: 
+Using only one temporary array, we need to make a choice:
 do we make the left or right half temporary? Does it matter?
 
 Let's try:
@@ -38,7 +59,7 @@ left_i                    right_i
 But now the value pointing pointed to by `left_i` is lost!
 The problem is that the `a_k` and `left_i` point at the same
 value: but you can think of `a_k` as "write" location and `left_i`
-as a read location. They cannot overlap. 
+as a read location. They cannot overlap.
 
 So the trick is to put the left in the temporary array:
 ```
@@ -47,7 +68,7 @@ So the trick is to put the left in the temporary array:
 a_k         right_i    left_i
 ```
 Now `a_k` does not overlap with any of the read locations.
-So working the example again, 
+So working the example again,
 ```
 [4, 7, 10, | 4, 5, 9], [6, 7, 10]
     ^           ^       ^
@@ -61,7 +82,7 @@ and `a_k` will point at `right_i`.
 
 Likewise, if `right` fills in `a_k` first, `left_i` will point
 will start overwriting the `right` half of the array, which was already
-processed. 
+processed.
 
 ```bash
 sort_a repeated : Elapsed execution time: 0.048180 sec
