@@ -50,37 +50,40 @@
  // A merge routine. Merges the sub-arrays A [p..q] and A [q + 1..r].
  // Uses two arrays 'left' and 'right' in the merge operation.
  inline static void merge_m(data_t* A, int p, int q, int r) {
-   assert(A);
-   assert(p <= q);
-   assert((q + 1) <= r);
-   int n1 = q - p + 1;
-   int n2 = r - q;
+    assert(A);
+    assert(p <= q);
+    assert((q + 1) <= r);
+    int n1 = q - p + 1;
 
-   data_t* left = A;
-   data_t* right = 0;
-   mem_alloc(&right, n2 + 1);
-   if (left == NULL || right == NULL) {
-     mem_free(&right);
-     return;
-   }
 
-   copy_m(&(A[q + 1]), right, n2);
+    data_t* left = 0;
+    mem_alloc(&left, n1 + 1);
+    if (left == NULL) {
+        mem_free(&left);
+        return;
+    }
 
-   left[n1] = UINT_MAX;
-   right[n2] = UINT_MAX;
+    copy_m(&(A[p]), left, n1);
+    data_t* right = &A[q + 1];
 
-   data_t* a_k = &A[p];
-   data_t* left_i = left;
-   data_t* right_j = right;
-   for (int k = p; k <= r; k++) {
-     if (*left_i <= *right_j) {
-       *a_k++ = *left_i++;
-     } else {
-       *a_k++ = *right_j++;
-     }
-   }
+    left[n1] = UINT_MAX;
 
-   mem_free(&right);
+    data_t* a_k = &A[p];
+    data_t* left_i = left;
+    data_t* right_j = right;
+    while (left_i < left + n1 && right_j <= &A[r]) {
+        if (*left_i <= *right_j) {
+            *a_k++ = *left_i++;
+        } else {
+            *a_k++ = *right_j++;
+        }
+    }
+
+    while (left_i < left + n1) {
+        *a_k++ = *left_i++;
+    }
+
+    mem_free(&left);
  }
 
  inline static void copy_m(data_t* source, data_t* dest, int n) {

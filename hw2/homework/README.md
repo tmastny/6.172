@@ -2,36 +2,79 @@
 
 ## write-up 6
 
-The adjustment here was very simple to implement:
-the algorithm was written in a way where we just needed
-to *rename* the `right` array to `A`, like this:
-```c
-data_t* right = A;
-// ...
-data_t* a_k = &A[p];
-data_t* left_i = left;
-data_t* right_j = right;
-for (int k = p; k <= r; k++) {
-  if (*left_i <= *right_j) {
-    *a_k++ = *left_i++;
-  } else {
-    *a_k++ = *right_j++;
-  }
-}
+The trick here is to understand how to use the original
+array without overwriting values we'll need in the future
+for merging. 
+
+Let's take this array `A`:
+```
+[6, 7, 10, | 4, 5, 9] -> [6, 7, 10], [4, 5, 9]
+```
+With two separate arrays, the original values are always
+available in the copies, so we can overwrite the original. 
+We start with `left_i` and `right_i` pointing
+at the first read values of the array, 
+copy the smallest one to `A` and increment that pointer. 
+
+Using only one temporary array, we need to make a choice: 
+do we make the left or right half temporary? Does it matter?
+
+Let's try:
+```
+[6, 7, 10, | 4, 5, 9], [4, 5, 9]
+ ^                      ^
+left_i                 right_i
+a_k
+```
+The problem is the first comparison: `left_i <\= right_i`,
+so `*a_k++ = *right_i**`:
+```
+[4, 7, 10, | 4, 5, 9], [4, 5, 9]
+ ^  ^                      ^
+left_i                    right_i
+    a_k
 ```
 
-```bash
-sort_a repeated : Elapsed execution time: 0.050081 sec
-sort_i repeated : Elapsed execution time: 0.048197 sec
-sort_p repeated : Elapsed execution time: 0.038371 sec
-sort_c repeated : Elapsed execution time: 0.033061 sec
-sort_m repeated : Elapsed execution time: 0.028260 sec
+But now the value pointing pointed to by `left_i` is lost!
+The problem is that the `a_k` and `left_i` point at the same
+value: but you can think of `a_k` as "write" location and `left_i`
+as a read location. They cannot overlap. 
 
-sort_a repeated : Elapsed execution time: 0.095721 sec
-sort_i repeated : Elapsed execution time: 0.092492 sec
-sort_p repeated : Elapsed execution time: 0.076616 sec
-sort_c repeated : Elapsed execution time: 0.064368 sec
-sort_m repeated : Elapsed execution time: 0.047557 sec
+So the trick is to put the left in the temporary array:
+```
+[6, 7, 10, | 4, 5, 9], [6, 7, 10]
+ ^           ^          ^
+a_k         right_i    left_i
+```
+Now `a_k` does not overlap with any of the read locations.
+So working the example again, 
+```
+[4, 7, 10, | 4, 5, 9], [6, 7, 10]
+    ^           ^       ^
+   a_k       right_i   left_i
+```
+
+But could there be any other potential for overwrites?
+No: because left and right are the "same size", if left
+fills in `a_k` first, `right_i` will point to same location
+and `a_k` will point at `right_i`.
+
+Likewise, if `right` fills in `a_k` first, `left_i` will point
+will start overwriting the `right` half of the array, which was already
+processed. 
+
+```bash
+sort_a repeated : Elapsed execution time: 0.048180 sec
+sort_i repeated : Elapsed execution time: 0.044179 sec
+sort_p repeated : Elapsed execution time: 0.037427 sec
+sort_c repeated : Elapsed execution time: 0.025132 sec
+sort_m repeated : Elapsed execution time: 0.026123 sec
+
+sort_a repeated : Elapsed execution time: 0.091898 sec
+sort_i repeated : Elapsed execution time: 0.087961 sec
+sort_p repeated : Elapsed execution time: 0.071978 sec
+sort_c repeated : Elapsed execution time: 0.045692 sec
+sort_m repeated : Elapsed execution time: 0.044402 sec
 ```
 
 
