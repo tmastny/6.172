@@ -1,5 +1,49 @@
 # recitation
 
+## write-up 2
+
+### restrict
+
+`restrict` key word: tells the compiler that the memory
+does not share any memory addresses.
+```c
+void test(uint8_t* restrict a, uint8_t* restrict b) {
+    uint64_t i;
+
+    for (i = 0; i < SIZE; i++) {
+        a[i] += b[i];
+    }
+}
+```
+
+This completely eliminates the overlap check
+and the scalar code from the assembly.
+
+### aligned
+
+One area of improvement: the vectorized code uses `movdqu`
+which works for unaligned memory. Faster might be `movdqa`.
+
+We can tell the compiler they are aligned.
+```c
+a = __builtin_assume_aligned(a, 16);
+b = __builtin_assume_aligned(b, 16);
+```
+
+Alignment is a property of the pointer! For example,
+`a` is aligned to 16 bytes if the address of `a` is divisible by 16.
+For example, if `&a` is 0x1240 then `a` is aligned to 16 bytes.
+
+However, if `&a` is 0x1241, then `a` is not aligned to 16 bytes.
+
+It doesn't have to do with the spacing between elements in the array,
+but rather the location of the starting point.
+
+So `movdqu` loads `16` bytes regardless of the base address,
+where `movdqa` requires the base address to be divisible by 16.
+
+Compiling with `__builtin_assume_aligned` switches the instruction to `movdqa`.
+
 ## write-up 1
 
 Note: on my my machine, the compiler does not use negative indexing:
