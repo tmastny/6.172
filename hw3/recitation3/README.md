@@ -44,6 +44,29 @@ where `movdqa` requires the base address to be divisible by 16.
 
 Compiling with `__builtin_assume_aligned` switches the instruction to `movdqa`.
 
+Another difference is the assembly:
+```asm
+10:	66 0f 6f 04 07       	movdqa (%rdi,%rax,1),%xmm0
+15:	66 0f 6f 4c 07 10    	movdqa 0x10(%rdi,%rax,1),%xmm1
+1b:	66 0f 6f 54 07 20    	movdqa 0x20(%rdi,%rax,1),%xmm2
+21:	66 0f 6f 5c 07 30    	movdqa 0x30(%rdi,%rax,1),%xmm3
+27:	66 0f fc 04 06       	paddb  (%rsi,%rax,1),%xmm0
+2c:	66 0f fc 4c 06 10    	paddb  0x10(%rsi,%rax,1),%xmm1
+32:	66 0f 7f 04 07       	movdqa %xmm0,(%rdi,%rax,1)
+37:	66 0f 7f 4c 07 10    	movdqa %xmm1,0x10(%rdi,%rax,1)
+3d:	66 0f fc 54 06 20    	paddb  0x20(%rsi,%rax,1),%xmm2
+43:	66 0f fc 5c 06 30    	paddb  0x30(%rsi,%rax,1),%xmm3
+49:	66 0f 7f 54 07 20    	movdqa %xmm2,0x20(%rdi,%rax,1)
+4f:	66 0f 7f 5c 07 30    	movdqa %xmm3,0x30(%rdi,%rax,1)
+```
+
+The loads all 4 16-byte chunks from `a` and uses `paddb` to add them to `b`
+in memory.
+
+In the old version, the compiler loaded both `a` and `b` into registers
+first, then added. So overall, this version uses 4 fewer instructions.
+
+
 ## write-up 1
 
 Note: on my my machine, the compiler does not use negative indexing:
