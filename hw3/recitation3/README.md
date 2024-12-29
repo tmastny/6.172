@@ -1,12 +1,47 @@
 # recitation
 
+## write-up 4
+
+The asm is really cool!
+
+```asm
+incq	%rsi
+movl	$65536, %edx                    # imm = 0x10000
+jmp	memcpy@PLT
+```
+
+For x86 Linux, function arguments are
+* first: %rdi: `a`
+* second: %rsi: `b`
+* third: %rdx
+
+So first, we set `b = &b[1]` with `incq %rsi`.
+Then `%edx` is set to 65536, or 0x10000.
+Help to know that registers use prefixes and suffixes
+to use difference sizes of a register:
+```
+64-bit (8 bytes): %rax, %rbx, %rcx, %rdx, ...
+32-bit (4 bytes): %eax, %ebx, %ecx, %edx, ...
+16-bit (2 bytes): %ax,  %bx,  %cx,  %dx,  ...
+8-bit  (1 byte):  %al,  %bl,  %cl,  %dl,  ... (low byte)
+8-bit  (1 byte):  %ah,  %bh,  %ch,  %dh,  ... (high byte of lower 16 bits)
+```
+So `%edx` does set `%rdx`.
+
+Then we jump to `memcpy@PLT`, which is the `memcpy` function.
+`memcpy` arguments are `(dest, src, size)`, so we are copying
+`65536` bytes from `b + 1 to `a`.
+
+`memcpy` is an optimized standard library function that already
+uses vectorization, so this is even better than rolling our own.
+
 ## write-up 3
 
-The difference is that the first version thinks it must handle a 
+The difference is that the first version thinks it must handle a
 conditional branch.
 
 But in the second version, the compiler knows that the ternary
-operation corresponds to a max operation. 
+operation corresponds to a max operation.
 
 I don't follow understand and am having trouble finding documentation,
 but the general pattern seems to be:
