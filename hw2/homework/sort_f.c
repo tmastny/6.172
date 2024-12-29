@@ -67,7 +67,7 @@ inline void mem_free_f(data_t** space) {
    static int first_call = 1;
    if (first_call) {
        first_call = 0;
-       mem_alloc_f(&allocated_array, r - p + 1);
+       mem_alloc_f(&allocated_array, (r - p + 1) / 2 + 1);
    }
    
    if (p < r) {

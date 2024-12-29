@@ -14,6 +14,7 @@ packages:
   - llvm
   - linux-tools-generic
   - sysfsutils
+  - ltrace
 
 write_files:
   - path: /etc/sysctl.d/99-perf.conf

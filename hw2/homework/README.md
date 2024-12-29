@@ -2,24 +2,75 @@
 
 ## write-up 7
 
-How to profile?
+Can see that the `mem_alloc` function is called about 100,000 times,
+but the actual allocation only happens once. 
+
+```bash
+valgrind --tool=callgrind --collect-atstart=yes --collect-bus=yes ./sort 100000 1
+callgrind_annotate callgrind.out.* --inclusive=yes
+```
+
+```c
+.          .           inline void mem_alloc_f(data_t** space, int size) {
+98,301 ( 0.01%) .               if (allocs > 0) {
+32,766 ( 0.00%) .                  *space = allocated_array;
+32,766 ( 0.00%) .                  allocs += 1;
+.          .                  return;
+.          .               }
+.          .
+4 ( 0.00%) .               allocated_array = (data_t*) malloc(sizeof(data_t) * size);
+337 ( 0.00%) .           => ./malloc/./malloc/malloc.c:malloc (1x)
+2 ( 0.00%) .               *space = allocated_array;
+2 ( 0.00%) .               if (*space == NULL) {
+.          .                   printf("out of memory...\n");
+.          .               }
+.          .               allocs = 1;
+.          .           }
+```
 
 
 ```bash
-sort_a repeated : Elapsed execution time: 0.043307 sec
-sort_i repeated : Elapsed execution time: 0.039047 sec
-sort_p repeated : Elapsed execution time: 0.043365 sec
-sort_c repeated : Elapsed execution time: 0.022954 sec
-sort_m repeated : Elapsed execution time: 0.032067 sec
-sort_f repeated : Elapsed execution time: 0.030694 sec
+sort_a repeated : Elapsed execution time: 0.039361 sec
+sort_i repeated : Elapsed execution time: 0.039058 sec
+sort_p repeated : Elapsed execution time: 0.031940 sec
+sort_c repeated : Elapsed execution time: 0.027695 sec
+sort_m repeated : Elapsed execution time: 0.031796 sec
+sort_f repeated : Elapsed execution time: 0.017996 sec
 
-sort_a repeated : Elapsed execution time: 0.088720 sec
-sort_i repeated : Elapsed execution time: 0.082620 sec
-sort_p repeated : Elapsed execution time: 0.089706 sec
-sort_c repeated : Elapsed execution time: 0.052727 sec
-sort_m repeated : Elapsed execution time: 0.044793 sec
-sort_f repeated : Elapsed execution time: 0.048354 sec
+sort_a repeated : Elapsed execution time: 0.089739 sec
+sort_i repeated : Elapsed execution time: 0.088423 sec
+sort_p repeated : Elapsed execution time: 0.076967 sec
+sort_c repeated : Elapsed execution time: 0.067473 sec
+sort_m repeated : Elapsed execution time: 0.043658 sec
+sort_f repeated : Elapsed execution time: 0.034424 sec
 ```
+
+And some other metrics:
+```bash
+perf record -e page-faults,context-switches,cpu-migrations ./sort 100000 1
+perf report --stdio --sort symbol,dso | grep -E "sort_(a|i|p|c|m|f)"
+     4.69%  [.] sort_c                         sort                  -      -
+     4.23%  [.] sort_p                         sort                  -      -
+     3.05%  [.] sort_i                         sort                  -      -
+     0.67%  [.] sort_f                         sort                  -      -
+```
+
+The valgrind performance stats are almsot identical. 
+| Category           | Metric | Description                        | sort_f        | sort_f % | sort_m        | sort_m % |
+|-------------------|--------|----------------------------------- |--------------|----------|--------------|----------|
+| Instructions      | Ir     | Instructions executed              | 42,367,350   | 3.5%     | 42,366,209   | 3.5%     |
+| Instruction Cache | I1mr   | L1 instruction cache misses        | 17           | 0.8%     | 13           | 0.6%     |
+|                   | ILmr   | Last-level instruction cache misses| 13           | 0.7%     | 11           | 0.6%     |
+| Data Reads        | Dr     | Data reads                         | 5,435,811    | 1.6%     | 5,304,742    | 1.6%     |
+|                   | D1mr   | L1 data read misses               | 87,641       | 3.9%     | 89,567       | 4.0%     |
+|                   | DLmr   | Last-level data read misses       | 1            | 0.1%     | 0            | 0.0%     |
+| Data Writes       | Dw     | Data writes                        | 3,401,192    | 1.7%     | 3,433,954    | 1.7%     |
+|                   | D1mw   | L1 data write misses              | 74,375       | 4.0%     | 75,409       | 4.1%     |
+|                   | DLmw   | Last-level data write misses      | 0            | 0.0%     | 0            | 0.0%     |
+| Branch Prediction | Bc     | Conditional branches executed      | 5,102,208    | 3.0%     | 5,003,904    | 2.9%     |
+|                   | Bcm    | Conditional branch mispredictions  | 124,530      | 1.2%     | 139,145      | 1.3%     |
+
+
 
 ## write-up 6
 
@@ -146,35 +197,19 @@ cg_annotate cachegrind.out.* \
     grep '<'
 ```
 
-`merge_m`:
-| Category           | Metric | Description                        | Count     | % of Program |
-|-------------------|--------|----------------------------------- |-----------|--------------|
-| Instructions      | Ir     | Instructions executed              | 26,327,681| 34.0%        |
-| Instruction Cache | I1mr   | L1 instruction cache misses        | 13        | 0.7%         |
-|                   | ILmr   | Last-level instruction cache misses| 12        | 0.7%         |
-| Data Reads        | Dr     | Data reads                         | 3,217,374 | 16.0%        |
-|                   | D1mr   | L1 data read misses               | 43,508    | 27.7%        |
-|                   | DLmr   | Last-level data read misses       | 0         | 0.0%         |
-| Data Writes       | Dw     | Data writes                        | 1,945,231 | 17.8%        |
-|                   | D1mw   | L1 data write misses              | 36,292    | 29.3%        |
-|                   | DLmw   | Last-level data write misses      | 4,701     | 17.4%        |
-| Branch Prediction | Bc     | Conditional branches executed      | 3,089,925 | 26.7%        |
-|                   | Bcm    | Conditional branch mispredictions  | 61,220    | 5.7%         |
-
-`merge_c`:
-| Category           | Metric | Description                        | Count     | % of Program |
-|-------------------|--------|----------------------------------- |-----------|--------------|
-| Instructions      | Ir     | Instructions executed              | 22,026,713| 29.1%        |
-| Instruction Cache | I1mr   | L1 instruction cache misses        | 17        | 1.0%         |
-|                   | ILmr   | Last-level instruction cache misses| 16        | 1.0%         |
-| Data Reads        | Dr     | Data reads                         | 3,528,341 | 16.7%        |
-|                   | D1mr   | L1 data read misses               | 61,234    | 35.0%        |
-|                   | DLmr   | Last-level data read misses       | 0         | 0.0%         |
-| Data Writes       | Dw     | Data writes                        | 2,243,020 | 19.2%        |
-|                   | D1mw   | L1 data write misses              | 64,227    | 42.4%        |
-|                   | DLmw   | Last-level data write misses      | 9,412     | 32.9%        |
-| Branch Prediction | Bc     | Conditional branches executed      | 1,230,693 | 12.3%        |
-|                   | Bcm    | Conditional branch mispredictions  | 71,014    | 6.5%         |
+| Category           | Metric | Description                        | sort_c        | sort_c % | sort_m        | sort_m % |
+|-------------------|--------|----------------------------------- |--------------|----------|--------------|----------|
+| Instructions      | Ir     | Instructions executed              | 22,026,713   | 29.1%    | 26,327,681   | 34.0%    |
+| Instruction Cache | I1mr   | L1 instruction cache misses        | 17           | 1.0%     | 13           | 0.7%     |
+|                   | ILmr   | Last-level instruction cache misses| 16           | 1.0%     | 12           | 0.7%     |
+| Data Reads        | Dr     | Data reads                         | 3,528,341    | 16.7%    | 3,217,374    | 16.0%    |
+|                   | D1mr   | L1 data read misses               | 61,234       | 35.0%    | 43,508       | 27.7%    |
+|                   | DLmr   | Last-level data read misses       | 0            | 0.0%     | 0            | 0.0%     |
+| Data Writes       | Dw     | Data writes                        | 2,243,020    | 19.2%    | 1,945,231    | 17.8%    |
+|                   | D1mw   | L1 data write misses              | 64,227       | 42.4%    | 36,292       | 29.3%    |
+|                   | DLmw   | Last-level data write misses      | 9,412        | 32.9%    | 4,701        | 17.4%    |
+| Branch Prediction | Bc     | Conditional branches executed      | 1,230,693    | 12.3%    | 3,089,925    | 26.7%    |
+|                   | Bcm    | Conditional branch mispredictions  | 71,014       | 6.5%     | 61,220       | 5.7%     |
 
 `merge_m` has about 4 million more instructions!
 We can see what's going on looking at the annotated assembly:
@@ -190,7 +225,7 @@ processing two elements at a time:
 # edge case instructions, when we have an odd number of elements
 # ...
 : 287  if (*left_i <= *right_j) {
- 
+
 # load left and right
 3.23 :   2c10:   mov    edi,DWORD PTR [rcx]
 13.71 :   2c12:   mov    r8d,DWORD PTR [rdx]
