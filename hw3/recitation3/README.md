@@ -2,22 +2,40 @@
 
 ## write-up 2
 
-### restrict
-
-`restrict` key word: tells the compiler that the memory
-does not share any memory addresses.
+The fix is to use a different alignment size:
 ```c
-void test(uint8_t* restrict a, uint8_t* restrict b) {
-    uint64_t i;
+a = __builtin_assume_aligned(a, 32);
+b = __builtin_assume_aligned(b, 32);
+```
+We need to match the register size. 
+The code is identical except now uses `vmovdqa` instead of `vmovdqu`.
 
-    for (i = 0; i < SIZE; i++) {
-        a[i] += b[i];
-    }
-}
+
+### avx2
+
+avx2 is 256 bit registers, so can process 32 bytes at a time.
+```asm
+10:	c5 fe 6f 04 07       	vmovdqu (%rdi,%rax,1),%ymm0
+15:	c5 fe 6f 4c 07 20    	vmovdqu 0x20(%rdi,%rax,1),%ymm1
+1b:	c5 fe 6f 54 07 40    	vmovdqu 0x40(%rdi,%rax,1),%ymm2
+21:	c5 fe 6f 5c 07 60    	vmovdqu 0x60(%rdi,%rax,1),%ymm3
+27:	c5 fd fc 04 06       	vpaddb (%rsi,%rax,1),%ymm0,%ymm0
+2c:	c5 f5 fc 4c 06 20    	vpaddb 0x20(%rsi,%rax,1),%ymm1,%ymm1
+32:	c5 ed fc 54 06 40    	vpaddb 0x40(%rsi,%rax,1),%ymm2,%ymm2
+38:	c5 e5 fc 5c 06 60    	vpaddb 0x60(%rsi,%rax,1),%ymm3,%ymm3
+3e:	c5 fe 7f 04 07       	vmovdqu %ymm0,(%rdi,%rax,1)
+43:	c5 fe 7f 4c 07 20    	vmovdqu %ymm1,0x20(%rdi,%rax,1)
+49:	c5 fe 7f 54 07 40    	vmovdqu %ymm2,0x40(%rdi,%rax,1)
+4f:	c5 fe 7f 5c 07 60    	vmovdqu %ymm3,0x60(%rdi,%rax,1)
+  for (i = 0; i < SIZE; i++) {
+
+; adding 128 bytes: (4 * 32 bytes) (32 bytes is 256 bits, the AVX2 register size)
+55:	48 83 e8 80          	sub    $0xffffffffffffff80,%rax
+59:	48 3d 00 00 01 00    	cmp    $0x10000,%rax
+5f:	75 af                	jne    10 <test+0x10>
 ```
 
-This completely eliminates the overlap check
-and the scalar code from the assembly.
+How do we get it to use `vmovdqa` instead of `vmovdqu`?
 
 ### aligned
 
@@ -65,6 +83,23 @@ in memory.
 
 In the old version, the compiler loaded both `a` and `b` into registers
 first, then added. So overall, this version uses 4 fewer instructions.
+
+### restrict
+
+`restrict` key word: tells the compiler that the memory
+does not share any memory addresses.
+```c
+void test(uint8_t* restrict a, uint8_t* restrict b) {
+    uint64_t i;
+
+    for (i = 0; i < SIZE; i++) {
+        a[i] += b[i];
+    }
+}
+```
+
+This completely eliminates the overlap check
+and the scalar code from the assembly.
 
 
 ## write-up 1
