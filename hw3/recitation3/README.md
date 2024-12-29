@@ -1,5 +1,47 @@
 # recitation
 
+## write-up 3
+
+The difference is that the first version thinks it must handle a 
+conditional branch.
+
+But in the second version, the compiler knows that the ternary
+operation corresponds to a max operation. 
+
+I don't follow understand and am having trouble finding documentation,
+but the general pattern seems to be:
+* branching severly disrupts vectorization
+* the ternary operation is considered a data transformation,
+  where each element of the vector pair is transformed independently
+
+
+### attempt 2
+
+Assembly length: 0x61
+```c
+a[i] = (b[i] > a[i]) ? b[i] : a[i];
+```
+
+Key change is `pamxub`:
+```bash
+# pmaxub (%rsi,%rax,1),%xmm0
+#        ^             ^ 16 bytes of a
+#        16 bytes of b
+#        from memory
+Memory at (%rsi + %rax):  [5, 8, 3, 7, ...]   (b[i] values)
+xmm0:                     [4, 9, 2, 8, ...]   (a[i] values)
+After pmaxub:             [5, 9, 3, 8, ...]   (max of each pair)
+```
+
+### attempt 1
+
+Assembly length: 0x1fe
+
+```c
+if (y[i] > x[i]) x[i] = y[i];
+```
+
+
 ## write-up 2
 
 The fix is to use a different alignment size:
@@ -7,7 +49,7 @@ The fix is to use a different alignment size:
 a = __builtin_assume_aligned(a, 32);
 b = __builtin_assume_aligned(b, 32);
 ```
-We need to match the register size. 
+We need to match the register size.
 The code is identical except now uses `vmovdqa` instead of `vmovdqu`.
 
 
