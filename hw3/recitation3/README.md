@@ -1,8 +1,83 @@
 # recitation
 
+## write-up 5
+
+Part of `--ffast-math` says that we can reorder floating point operations:
+or that we allow associativity and are okay with slightly inconsistent answers.
+This will allow us to vectorize our code, but will still give us answers
+roughly the right order of magnitude.
+
+
+
+
+### floating point associativity
+
+Here's how vectorization can change associativity:
+
+```c
+// Scalar operation:
+y = (((0 + x[0]) + x[1]) + x[2]) + x[3];
+
+// Vector (128 bit / 64 bit = 2)
+y = (0 + x[0] + x[1]) + (x[2] + x[3]) + ...
+```
+
+But why should that matter?
+Floating point operations are not associative!
+Here's two examples:
+
+```c
+float a = 1e20;
+float b = -1e20;
+float c = 1;
+
+// (1e20 + -1e20) + 1 =
+//       0        + 1 = 1
+
+// (-1e20 + 1) + 1e20 =
+//     -1e20   + 1e20 = 0
+```
+
+Floating points have limited precision,
+especially with great differences in orders of
+magnitude.
+
+Why? Well, let's take a look at the bit structure of a float
+representing -1e20:
+```
+0 11000001  01011010111100011101100
+s exponent  mantissa
+```
+
+where the form of the number is
+(ignoring a minor detail) `mantissa * 2^exponent`.
+But this means that's there a minimum value that can be
+represented at the given exponent!
+
+For 32-bit floats, we have a 23-bit mantissa, with an implicit 1
+in front of the mantissa.
+So `log_10(2^23) = 7.22`. So we can represent about 7 digits.
+
+And based on the number, `mantissa * 2^exponent`,
+the 7 digits are at the beginning, or most significant part
+of our decimal number.
+
+Since our number is 1e20, we have 20 significant digits in the floating point.
+So adding 1 to -1e20 gives us -1e20, because our mantissa cannot
+represent that level of precision.
+```
+1e20 = 1 00000 00000 00000 00000 00000
+       ^-------^
+       part we can represent
+       with mantissa
+```
+
+
+
 ## write-up 4
 
-The asm is really cool!
+The asm is really cool! (better to look at clang assmebly here
+isntead of objdump).
 
 ```asm
 incq	%rsi
