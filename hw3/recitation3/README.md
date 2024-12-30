@@ -23,6 +23,105 @@ This shows that there is no major difference in the rounded
 decimal results (printed and rounded with `%f`), but the raw
 floating point representation is slightly different.
 
+The key assembly routine without `-ffast-math` is scalar oriented, 
+unrolled with 8 values at a time:
+```asm
+0000000000000000 <test>:
+   0:	66 0f 57 c0          	xorpd  %xmm0,%xmm0
+   4:	31 c0                	xor    %eax,%eax
+   6:	66 2e 0f 1f 84 00 00 	cs nopw 0x0(%rax,%rax,1)
+   d:	00 00 00 
+  10:	f2 0f 58 04 c7       	addsd  (%rdi,%rax,8),%xmm0
+  15:	f2 0f 58 44 c7 08    	addsd  0x8(%rdi,%rax,8),%xmm0
+  1b:	f2 0f 58 44 c7 10    	addsd  0x10(%rdi,%rax,8),%xmm0
+  21:	f2 0f 58 44 c7 18    	addsd  0x18(%rdi,%rax,8),%xmm0
+  27:	f2 0f 58 44 c7 20    	addsd  0x20(%rdi,%rax,8),%xmm0
+  2d:	f2 0f 58 44 c7 28    	addsd  0x28(%rdi,%rax,8),%xmm0
+  33:	f2 0f 58 44 c7 30    	addsd  0x30(%rdi,%rax,8),%xmm0
+  39:	f2 0f 58 44 c7 38    	addsd  0x38(%rdi,%rax,8),%xmm0
+  3f:	48 83 c0 08          	add    $0x8,%rax
+  43:	48 3d 00 00 01 00    	cmp    $0x10000,%rax
+  49:	75 c5                	jne    10 <test+0x10>
+  4b:	c3                   	ret    
+  4c:	0f 1f 40 00          	nopl   0x0(%rax)
+```
+
+```c
+// sums 8 values each iteration
+iteration 0: ((((0 + x[0]) + x[1]) + x[2]) + x[3]) + ... 
+```
+
+
+With `-ffast-math`, the assembly is vectorized, but the operation
+is a little different. Now we have two intermediate registers
+`%xmm0` and `%xmm1`.
+
+Two different registers help avoid dependencies and allows
+independent executions.
+```asm
+0000000000000000 <test>:
+   0:	66 0f 57 c0          	xorpd  %xmm0,%xmm0
+   4:	31 c0                	xor    %eax,%eax
+   6:	66 0f 57 c9          	xorpd  %xmm1,%xmm1
+   a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+  10:	66 0f 58 04 c7       	addpd  (%rdi,%rax,8),%xmm0
+  15:	66 0f 58 4c c7 10    	addpd  0x10(%rdi,%rax,8),%xmm1
+  1b:	66 0f 58 44 c7 20    	addpd  0x20(%rdi,%rax,8),%xmm0
+  21:	66 0f 58 4c c7 30    	addpd  0x30(%rdi,%rax,8),%xmm1
+  27:	66 0f 58 44 c7 40    	addpd  0x40(%rdi,%rax,8),%xmm0
+  2d:	66 0f 58 4c c7 50    	addpd  0x50(%rdi,%rax,8),%xmm1
+  33:	66 0f 58 44 c7 60    	addpd  0x60(%rdi,%rax,8),%xmm0
+  39:	66 0f 58 4c c7 70    	addpd  0x70(%rdi,%rax,8),%xmm1
+  3f:	48 83 c0 10          	add    $0x10,%rax
+  43:	48 3d 00 00 01 00    	cmp    $0x10000,%rax
+  49:	75 c5                	jne    10 <test+0x10>
+  4b:	66 0f 58 c8          	addpd  %xmm0,%xmm1
+  4f:	66 0f 28 c1          	movapd %xmm1,%xmm0
+  53:	66 0f 15 c1          	unpckhpd %xmm1,%xmm0
+  57:	f2 0f 58 c1          	addsd  %xmm1,%xmm0
+  5b:	c3                   	ret    
+  5c:	0f 1f 40 00          	nopl   0x0(%rax)
+```
+
+To start:
+```asm
+10:	66 0f 58 04 c7       	addpd  (%rdi,%rax,8),%xmm0
+#  (%rdi,%rax,8): a[0], a[1]
+#  %xmm0:            0, 0
+#  %xmm0:         a[0], a[1]
+15:	66 0f 58 4c c7 10    	addpd  0x10(%rdi,%rax,8),%xmm1
+#  (%rdi,%rax,8): a[2], a[3]
+#  %xmm1:            0, 0
+#  %xmm1:         a[2], a[3]
+1b:	66 0f 58 44 c7 20    	addpd  0x20(%rdi,%rax,8),%xmm0
+#  (%rdi,%rax,8): a[4], a[5]
+#  %xmm0:         a[1], a[2]
+#  %xmm0:         a[1] + a[4], a[2] + a[5]
+```
+The `%xmm0` and `%xmm1` are accumulating pairs of sums,
+until we reach the end of the array.
+
+Then:
+```asm
+4b:	66 0f 58 c8          	addpd  %xmm0,%xmm1
+# highs and los are added together and saved in %xmm1
+# now all we need to do that add the two high and low pairs
+
+4f:	66 0f 28 c1          	movapd %xmm1,%xmm0
+# copy to `xmm0` 
+
+53:	66 0f 15 c1          	unpckhpd %xmm1,%xmm0
+# copy high of `xmm1` to low of `xmm0`
+
+57:	f2 0f 58 c1          	addsd  %xmm1,%xmm0
+# add together the two lows
+# (this is adding high to low of `%xmm1` from 4b)
+```
+
+
+
+
+
 
 
 ### floating point associativity

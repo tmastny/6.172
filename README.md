@@ -8,7 +8,8 @@ multipass launch \
     --memory 4G \
     --disk 10G \
     --cloud-init cloud-init.yaml \
-    --mount .:/home/dev
+    --mount .:/home/dev \
+    22.04
 
 multipass shell dev
 ```
