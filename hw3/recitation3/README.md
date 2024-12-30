@@ -2,12 +2,22 @@
 
 ## write-up 5
 
-Part of `--ffast-math` says that we can reorder floating point operations:
+Part of `-ffast-math` says that we can reorder floating point operations:
 or that we allow associativity and are okay with slightly inconsistent answers.
 This will allow us to vectorize our code, but will still give us answers
 roughly the right order of magnitude.
 
+```bash
+clang -O3 example4.c -o example4; ./example4
+# The decimal floating point sum result is: 11.667578
+#  The raw floating point sum result is: 0x1.755cccec10aa5p+3
 
+
+
+```
+```bash
+make VECTORIZE=1 OTHER_CFLAGS='-ffast-math'
+```
 
 
 ### floating point associativity
