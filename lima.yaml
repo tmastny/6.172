@@ -23,7 +23,8 @@ provision:
       apt-get install -y build-essential gdb valgrind clang lldb cmake git vim htop llvm linux-tools-generic sysfsutils ltrace \
           gcc-x86-64-linux-gnu \
           libc6-dev-amd64-cross \
-          linux-libc-dev-amd64-cross
+          linux-libc-dev-amd64-cross \
+          lld
       echo "kernel.perf_event_paranoid = -1" >> /etc/sysctl.d/99-perf.conf
       echo "kernel.kptr_restrict = 0" >> /etc/sysctl.d/99-perf.conf
       sysctl -p /etc/sysctl.d/99-perf.conf
