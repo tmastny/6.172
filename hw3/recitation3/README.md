@@ -8,16 +8,21 @@ This will allow us to vectorize our code, but will still give us answers
 roughly the right order of magnitude.
 
 ```bash
+clang -O3 -ffast-math example4.c -o example4; ./example4
+# The decimal floating point sum result is: 11.667578
+# The raw floating point sum result is: 0x1.755cccec10aa3p+3
 clang -O3 example4.c -o example4; ./example4
 # The decimal floating point sum result is: 11.667578
-#  The raw floating point sum result is: 0x1.755cccec10aa5p+3
+# The raw floating point sum result is: 0x1.755cccec10aa5p+3
 
-
-
+# 1.755cccec10aa3 - mantissa
+# p+3             - exponent, 2^3
 ```
-```bash
-make VECTORIZE=1 OTHER_CFLAGS='-ffast-math'
-```
+
+This shows that there is no major difference in the rounded 
+decimal results (printed and rounded with `%f`), but the raw
+floating point representation is slightly different.
+
 
 
 ### floating point associativity
