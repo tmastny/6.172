@@ -5,7 +5,7 @@ https://ocw.mit.edu/courses/6-172-performance-engineering-of-software-systems-fa
 ```bash
 multipass launch \
     --name dev \
-    --memory 4G 
+    --memory 4G \
     --disk 10G \
     --cloud-init cloud-init.yaml \
     --mount .:/home/dev
