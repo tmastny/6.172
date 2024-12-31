@@ -1,9 +1,24 @@
 # homework3
 
+
+## write-up 10
+
+### x86
+
+Less vectorization overhead with smaller types.
+
+```
+Elapsed execution time: 1.838974 sec; N: 8192, I: 100000, __OP__: *, __TYPE__: uint64_t
+Elapsed execution time: 2.531715 sec; N: 8192, I: 100000, __OP__: *, __TYPE__: uint64_t
+
+Elapsed execution time: 1.783345 sec; N: 8192, I: 100000, __OP__: *, __TYPE__: uint8_t
+Elapsed execution time: 1.822738 sec; N: 8192, I: 100000, __OP__: *, __TYPE__: uint8_t
+```
+
 ## write-up 9
 
-With x86, we really do see a 2x performance at each step. 
-ARM is less clear from 64 to 32 bit, but we typically see 2x. 
+With x86, we really do see a 2x performance at each step.
+ARM is less clear from 64 to 32 bit, but we typically see 2x.
 For ARM in particular,
 runtime is dominated by memory, if you recall so that could be skewing
 the results.
