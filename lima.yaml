@@ -1,13 +1,17 @@
 images:
-  - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-arm64.img"
+  - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
 
 memory: 4GiB
 disk: 10GiB
 
-vmType: "vz"
-rosetta:
-  enabled: true
-  binfmt: true
+vmType: "qemu"
+arch: "x86_64"
+cpuType:
+  x86_64: Haswell
+
+firmware:
+  legacyBIOS: true
 
 mounts:
   - location: "/Users/tim/tmastny/6.172"
@@ -20,11 +24,8 @@ provision:
       #!/bin/bash
       apt-get update
       apt-get upgrade -y
-      apt-get install -y build-essential gdb valgrind clang lldb cmake git vim htop llvm linux-tools-generic sysfsutils ltrace \
-          gcc-x86-64-linux-gnu \
-          libc6-dev-amd64-cross \
-          linux-libc-dev-amd64-cross \
-          lld
+      apt-get install -y build-essential gdb valgrind clang llvm \
+          cmake git vim htop linux-tools-generic
       echo "kernel.perf_event_paranoid = -1" >> /etc/sysctl.d/99-perf.conf
       echo "kernel.kptr_restrict = 0" >> /etc/sysctl.d/99-perf.conf
       sysctl -p /etc/sysctl.d/99-perf.conf

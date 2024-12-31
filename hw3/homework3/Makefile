@@ -1,7 +1,7 @@
 CC := clang
 
 EXTRA_CFLAGS ?=
-CFLAGS := -Wall -std=gnu99 -g --target=x86_64-unknown-linux-gnu -static
+CFLAGS := -Wall -std=gnu99 -g
 
 ifeq ($(DEBUG),1)
   CFLAGS += -O0
@@ -25,7 +25,7 @@ endif
 
 CFLAGS += $(EXTRA_CFLAGS)
 
-LDFLAGS := -B/usr/x86_64-linux-gnu/bin -lrt --target=x86_64-unknown-linux-gnu -static
+LDFLAGS := -lrt
 
 # You shouldn't need to touch this.  This keeps track of whether or
 # not you've changed CFLAGS.
