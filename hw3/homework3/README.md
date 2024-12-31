@@ -1,5 +1,114 @@
 # homework3
 
+## write-up 13
+
+### with width
+
+```
+Elapsed execution time: 0.895965 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+```
+
+Assembly is the same.
+```asm
+e0:	66 41 0f 6f 04 fc    	movdqa (%r12,%rdi,8),%xmm0
+e6:	66 41 0f 6f 4c fc 10 	movdqa 0x10(%r12,%rdi,8),%xmm1
+ed:	66 41 0f fe 04 ff    	paddd  (%r15,%rdi,8),%xmm0
+f3:	66 41 0f fe 4c ff 10 	paddd  0x10(%r15,%rdi,8),%xmm1
+fa:	66 0f 7e 04 fb       	movd   %xmm0,(%rbx,%rdi,8)
+ff:	66 0f 70 c0 ee       	pshufd $0xee,%xmm0,%xmm0
+104:	66 0f 7e 44 fb 08    	movd   %xmm0,0x8(%rbx,%rdi,8)
+10a:	66 0f 7e 4c fb 10    	movd   %xmm1,0x10(%rbx,%rdi,8)
+110:	66 0f 70 c1 ee       	pshufd $0xee,%xmm1,%xmm0
+115:	66 0f 7e 44 fb 18    	movd   %xmm0,0x18(%rbx,%rdi,8)
+```
+
+
+### force vectorization
+
+Does not vectorize by default:
+```
+loop.c:68:9: remark: the cost-model indicates that vectorization is not beneficial [-Rpass-missed=loop-vectorize]
+        for (j = 0; j < N; j += 2) {
+        ^
+```
+
+performance:
+```
+Elapsed execution time: 0.893672 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+Elapsed execution time: 0.918901 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+```
+
+Forcing vectorization:
+```asm
+# loads 8 uint32_t's from `B` into xmm0 and xmm1
+  e0:	66 41 0f 6f 04 fc    	movdqa (%r12,%rdi,8),%xmm0
+  e6:	66 41 0f 6f 4c fc 10 	movdqa 0x10(%r12,%rdi,8),%xmm1
+
+# adds 8 uint32_t's from `A` to `B`
+  ed:	66 41 0f fe 4c ff 10 	paddd  0x10(%r15,%rdi,8),%xmm1
+  f4:	66 41 0f fe 04 ff    	paddd  (%r15,%rdi,8),%xmm0
+
+# xmm0: [A[0] + B[0], A[1] + B[1], A[2] + B[2], A[3] + B[3]]
+# xmm1: [A[4] + B[4], A[5] + B[5], A[6] + B[6], A[7] + B[7]]
+#        ^                         ^ <- only care about these ones
+
+# moves lowest 32 bit of xmm0 to `C`
+  fa:	66 0f 7e 04 fb       	movd   %xmm0,(%rbx,%rdi,8)
+
+# pushes A[6] + B[6] into the first 32-bit spot of xmm0
+  ff:	66 0f 70 c0 ee       	pshufd $0xee,%xmm0,%xmm0
+ 104:	66 0f 7e 44 fb 08    	movd   %xmm0,0x8(%rbx,%rdi,8)
+ 10a:	66 0f 7e 4c fb 10    	movd   %xmm1,0x10(%rbx,%rdi,8)
+ 110:	66 0f 70 c1 ee       	pshufd $0xee,%xmm1,%xmm0
+ 115:	66 0f 7e 44 fb 18    	movd   %xmm0,0x18(%rbx,%rdi,8)
+```
+
+
+## write-up 12
+
+Runtime bounds.
+
+Doesn't know the bounds ahead of time,
+so has to add additional scalar instructions
+to clean up after SIMD:
+```asm
+ 130:	f3 41 0f 7e 04 0c    	movq   (%r12,%rcx,1),%xmm0
+ 136:	f3 0f 7e 0c 0b       	movq   (%rbx,%rcx,1),%xmm1
+ 13b:	66 0f fc c8          	paddb  %xmm0,%xmm1
+ 13f:	66 41 0f d6 0c 0f    	movq   %xmm1,(%r15,%rcx,1)
+ 145:	48 83 c1 08          	add    $0x8,%rcx
+ 149:	48 39 ce             	cmp    %rcx,%rsi
+ 14c:	75 e2                	jne    130 <main+0x130>
+ 14e:	48 89 f7             	mov    %rsi,%rdi
+ 151:	4d 85 c0             	test   %r8,%r8
+ 154:	0f 84 66 ff ff ff    	je     c0 <main+0xc0>
+```
+
+### arm
+
+```
+=== Testing N = 1024 ===
+Elapsed execution time: 0.033433 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
+=== Testing N = 2048 ===
+Elapsed execution time: 0.056427 sec; N: 2048, I: 100000, __OP__: +, __TYPE__: uint32_t
+=== Testing N = 4096 ===
+Elapsed execution time: 0.104844 sec; N: 4096, I: 100000, __OP__: +, __TYPE__: uint32_t
+=== Testing N = 8192 ===
+Elapsed execution time: 0.219666 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+```
+
+### x86
+
+```
+=== Testing N = 1024 ===
+Elapsed execution time: 0.214372 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
+=== Testing N = 2048 ===
+Elapsed execution time: 0.433187 sec; N: 2048, I: 100000, __OP__: +, __TYPE__: uint32_t
+=== Testing N = 4096 ===
+Elapsed execution time: 0.864093 sec; N: 4096, I: 100000, __OP__: +, __TYPE__: uint32_t
+=== Testing N = 8192 ===
+Elapsed execution time: 1.738664 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+```
 
 ## write-up 10
 
