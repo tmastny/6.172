@@ -2,6 +2,109 @@
 
 ## write-up 6
 
+### x86 speedup
+
+```bash
+perf record ./loop
+perf annotate --stdio --symbol=main > mvprof.asm
+```
+
+```asm
+99.93 :   11f0:   mov    0x8020(%rsp,%rax,4),%ecx
+ 0.00 :   11f7:   mov    0x8024(%rsp,%rax,4),%edx
+ 0.00 :   11fe:   add    0x10020(%rsp,%rax,4),%ecx
+ 0.00 :   1205:   add    0x10024(%rsp,%rax,4),%edx
+ 0.00 :   120c:   mov    %ecx,0x20(%rsp,%rax,4)
+ 0.00 :   1210:   mov    0x8028(%rsp,%rax,4),%ecx
+ 0.00 :   1217:   add    0x10028(%rsp,%rax,4),%ecx
+ 0.00 :   121e:   mov    %edx,0x24(%rsp,%rax,4)
+ 0.00 :   1222:   mov    0x802c(%rsp,%rax,4),%edx
+ 0.00 :   1229:   add    0x1002c(%rsp,%rax,4),%edx
+ 0.00 :   1230:   mov    %ecx,0x28(%rsp,%rax,4)
+ 0.00 :   1234:   mov    %edx,0x2c(%rsp,%rax,4)
+```
+All the time is spent on the first instruction,
+because `A`, `B`, and `C` can all fit in the cache.
+So if there is a new cache line to add, it will happen there.
+
+The actual addition operations are very small.
+
+So 11f0 ensures 11f7 and the next iteration are in the cache,
+BUT what about `0x10020` 0x20`: they would not be included in the 
+64 byte cache line. What's going on?
+
+Likely hardware prefetching recognizes the pattern and starts
+loading the lines for those addresses while we are waiting
+on 11f0: that instruction likely triggers the prefetching.
+
+From my limited understanding, it's hard to directly measure
+CPU prefetching, but we can infer based on clues from profiling,
+like the above.
+
+We can also see this when we instrument the ARM version,
+where the cache misses only happen at the begining of the program:
+```
+Process: loop (6206)
+00:02.000                                                                      00:02.2
+                     |-------------------------------------------------------------------------|
+L1D_CACHE_MISS_LD    |████                                                                  |
+INST_INT_LD          |████████      ████████      ████████      ████████ |
+```
+
+
+We see the same pattern in the vectorized version:
+```asm
+99.59 :   11f0:   movdqa 0x8020(%rsp,%rax,4),%xmm0
+```
+
+
+
+### arm speedup
+
+The profile for m3 is really interesting.
+The runtime is dominated by the array setup
+rather than the core SIMD loop, which explains our lack of speed.
+```asm
+38         +0x94  mov             w8, #0x0                          ; =0
+39         +0x98  mov             x9, #0x0                          ; =0
+40  59.6%  +0x9c  add             x10, x20, x9
+41         +0xa0  ldp             q0, q1, [x10]
+42         +0xa4  ldp             q2, q3, [x10, #0x20]
+43         +0xa8  add             x10, x21, x9
+44   0.9%  +0xac  ldp             q4, q5, [x10]
+45   2.6%  +0xb0  ldp             q6, q7, [x10, #0x20]
+46   1.8%  +0xb4  add.4s          v0, v4, v0
+47   0.9%  +0xb8  add.4s          v1, v5, v1
+48   0.9%  +0xbc  add.4s          v2, v6, v2
+49         +0xc0  add.4s          v3, v7, v3
+50   0.9%  +0xc4  add             x10, x22, x9
+51  19.3%  +0xc8  stp             q0, q1, [x10]
+52   6.1%  +0xcc  stp             q2, q3, [x10, #0x20]
+53   2.6%  +0xd0  add             x9, x9, #0x40
+54   1.8%  +0xd4  cmp             x9, #0x8, lsl #12              ; =0x8000
+55   1.8%  +0xd8  b.ne            "main+0x9c"
+56         +0xdc  add             w8, w8, #0x1
+57         +0xe0  cmp             w8, w23
+```
+
+without vectorization:
+```asm
+40   6.5%  +0x9c  ldr             w10, [x20, x9]
+41   0.4%  +0xa0  ldr             w11, [x21, x9]
+42         +0xa4  add             w10, w11, w10
+43  93.1%  +0xa8  str             w10, [x22, x9]
+```
+
+To really see speedups, the arrays would need to be much large,
+or operations more compute-intensive.
+
+If we loop at time, 114 ms vs 245 ms, ignoring overhead we can roughly account
+for the speed. The scalar version spends about all the 245 ms in the core loop,
+where the SIMD versin spends about 4 ms in loads, 4 ms in adds, 29 ms in stores,
+or 37 ms total. That gives about a 6.6x speedup! That's closer to the 8x speedup
+expected for AVX2, with some additional overhead because ARM uses
+`ldp` with 2 128-bit registers instead.
+
 ### vectorization speedups
 
 Relatively minor changes.
@@ -9,16 +112,70 @@ Relatively minor changes.
 ```bash
 make
 # x86: Elapsed execution time: 0.231844 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
+# x86, N=8192: Elapsed execution time: 1.685231 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+
 #  m3: Elapsed execution time: 0.030357 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
+# m3, N=8192: Elapsed execution time: 0.237252 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
 
 make VECTORIZE=1
 # x86: Elapsed execution time: 0.077484 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
+# x86, N=8192: Elapsed execution time: 0.557382 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+
 #  m3: Elapsed execution time: 0.018743 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
+# m3, N=8192: Elapsed execution time: 0.124397 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
 
 make VECTORIZE=1 AVX2=1
 # x86: Elapsed execution time: 0.071874 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
+# x86, N=8192: Elapsed execution time: 0.510652 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
 #  m3: Elapsed execution time: 0.018719 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
 ```
+
+m3 speed ups: 1.6x, 1.9x
+x86: 3x, 3x
+
+Don't really turst x86 axv2, since m3 does not have 256-bit registers,
+but it was useful to walk through the assembly.
+
+#### m3 speed-up only 1.6x
+
+make:
+The core loop with ARM assembly is much simpler.
+Load the data and add them, and write back.
+```asm
+98: b8696a8a     	ldr	w10, [x20, x9]
+9c: b8696aab     	ldr	w11, [x21, x9]
+a0: 0b0a016a     	add	w10, w11, w10
+a4: b8296aca     	str	w10, [x22, x9]
+```
+
+The SIMD version has some interesting differences:
+```asm
+# setup x10 register to be `A`
+98: 8b09028a     	add	x10, x20, x9
+
+# q registers are 128-bit. This is a unique
+# ARM instruction that loads both q0 and q1
+# in one, so this is loading 8 `uint32_t`s
+9c: ad400540     	ldp	q0, q1, [x10]
+a0: ad410d42     	ldp	q2, q3, [x10, #0x20]
+
+# set x10 to `B`
+a4: 8b0902aa     	add	x10, x21, x9
+a8: ad401544     	ldp	q4, q5, [x10]
+ac: ad411d46     	ldp	q6, q7, [x10, #0x20]
+
+# `v`s are portion of `q`s
+b0: 4ea08480     	add.4s	v0, v4, v0
+b4: 4ea184a1     	add.4s	v1, v5, v1
+b8: 4ea284c2     	add.4s	v2, v6, v2
+bc: 4ea384e3     	add.4s	v3, v7, v3
+
+# set x10 to `C`
+c0: 8b0902ca     	add	x10, x22, x9
+c4: ad000540     	stp	q0, q1, [x10]
+c8: ad010d42     	stp	q2, q3, [x10, #0x20]
+```
+
 
 #### non-vectorized assembly (write-up 7)
 

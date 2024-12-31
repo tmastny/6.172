@@ -27,7 +27,7 @@
 
 // N is small enough so that 3 arrays of size N fit into the AWS machine
 // level 1 caches (which are 32 KB each, as seen by running `lscpu`)
-#define N          1024
+#define N          8192
 
 // Run for multiple experiments to reduce measurement error on gettime().
 #define I          100000

@@ -25,7 +25,8 @@ provision:
       apt-get update
       apt-get upgrade -y
       apt-get install -y build-essential gdb valgrind clang llvm \
-          cmake git vim htop linux-tools-generic
+          cmake git vim htop linux-tools-generic \
+          linux-tools-5.15.0-127-generic
       echo "kernel.perf_event_paranoid = -1" >> /etc/sysctl.d/99-perf.conf
       echo "kernel.kptr_restrict = 0" >> /etc/sysctl.d/99-perf.conf
       sysctl -p /etc/sysctl.d/99-perf.conf
