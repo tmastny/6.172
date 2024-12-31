@@ -20,7 +20,7 @@ make VECTORIZE=1 AVX2=1
 #  m3: Elapsed execution time: 0.018719 sec; N: 1024, I: 100000, __OP__: +, __TYPE__: uint32_t
 ```
 
-#### non-vectorized assembly 
+#### non-vectorized assembly (write-up 7)
 
 `make` assembly: since the three arrays are initialized on the stack
 rather than as function arguments in the previous examples,
