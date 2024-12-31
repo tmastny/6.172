@@ -1,5 +1,69 @@
 # homework3
 
+## write-up 8
+
+### arm <<
+```
+Elapsed execution time: 0.244873 sec; N: 8192, I: 100000, __OP__: <<, __TYPE__: uint32_t
+Elapsed execution time: 0.114618 sec; N: 8192, I: 100000, __OP__: <<, __TYPE__: uint32_t
+```
+
+And once again, ARM has instructions for this situation: `ushl.4s`.
+
+### x86 <<
+```
+Elapsed execution time: 1.951943 sec; N: 8192, I: 100000, __OP__: <<, __TYPE__: uint32_t
+Elapsed execution time: 6.942292 sec; N: 8192, I: 100000, __OP__: <<, __TYPE__: uint32_t
+```
+
+The `<<` operator has even more overhead than the `*` version,
+you can see from the assembly.
+
+### arm assembly
+```
+Elapsed execution time: 0.263251 sec; N: 8192, I: 100000, __OP__: *, __TYPE__: uint32_t
+Elapsed execution time: 0.120661 sec; N: 8192, I: 100000, __OP__: *, __TYPE__: uint32_t
+```
+
+ARM has `mul.4s` which multiplies 4 32-bit integers in parallel,
+so we see a huge speed-up.
+
+
+### x86 assembly
+`__OP__ = *`:
+```bash
+# x86:      Elapsed execution time: 1.733270 sec; N: 8192, I: 100000, __OP__: *, __TYPE__: uint32_t
+# x86 SIMD: Elapsed execution time: 1.733270 sec; N: 8192, I: 100000, __OP__: *, __TYPE__: uint32_t
+```
+
+One reason we don't see the speed-up is that
+there x86 does not have a good way to multiple
+4 32-bit integers in the 128-bit SIMD registers.
+
+`pmuludq` only multiples the lower 32-bits of
+each 64-bit integer "part" of the 128-bit register.
+So we need another instruction to move the lower bits
+to the upper bits `pshufd`.
+
+```asm
+80:	66 0f 6f 94 84 20 00 	movdqa 0x10020(%rsp,%rax,4),%xmm2
+a5:	66 0f 6f ac 84 20 80 	movdqa 0x8020(%rsp,%rax,4),%xmm5
+
+# XMM2: [A, B, C, D]
+# XMM5: [E, F, G, H]
+
+pshufd $0xf5,%xmm5,%xmm0  ; xmm0 = [B, C, D, D]
+pshufd $0b, %xmm2, %xmm2  ; xmm2 = [B, D, B, D]kkk
+pmuludq %xmm2,%xmm5       ; xmm5 = [A*E, C*G] output is only 64-bit
+
+pshufd $0xe8,%xmm5,%xmm5    ; xmm5 = [A*E, 0, C*G, 0]
+pshufd $0xf5,%xmm2,%xmm2    ; xmm2 = [F, G, H, H]
+pmuludq %xmm0,%xmm2         ; xmm2 = [B*F, D*H]
+
+pshufd $0xe8,%xmm2,%xmm0    ; xmm0 = [B*F, 0, D*H, 0]
+punpckldq %xmm0,%xmm5       ; xmm5 = [A*E, B*F, C*G, D*H]
+```
+
 ## write-up 6
 
 ### x86 speedup
@@ -30,7 +94,7 @@ So if there is a new cache line to add, it will happen there.
 The actual addition operations are very small.
 
 So 11f0 ensures 11f7 and the next iteration are in the cache,
-BUT what about `0x10020` 0x20`: they would not be included in the 
+BUT what about `0x10020` 0x20`: they would not be included in the
 64 byte cache line. What's going on?
 
 Likely hardware prefetching recognizes the pattern and starts
