@@ -1,5 +1,48 @@
 # homework3
 
+## write-up 9
+
+With x86, we really do see a 2x performance at each step. 
+ARM is less clear from 64 to 32 bit, but we typically see 2x. 
+For ARM in particular,
+runtime is dominated by memory, if you recall so that could be skewing
+the results.
+
+The results *are* being vectorized though: ARM
+for example has `add.16s` instructions which adds 16 8-bit integers.
+
+### arm
+
+```
+Elapsed execution time: 0.270709 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint64_t
+Elapsed execution time: 0.229916 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+Elapsed execution time: 0.229515 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint16_t
+Elapsed execution time: 0.231281 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint8_t
+```
+
+```
+Elapsed execution time: 0.104732 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint64_t
+Elapsed execution time: 0.080516 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+Elapsed execution time: 0.031122 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint16_t
+Elapsed execution time: 0.016087 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint8_t
+```
+
+### x86
+
+```
+Elapsed execution time: 1.812962 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint64_t
+Elapsed execution time: 1.752446 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+Elapsed execution time: 1.724491 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint16_t
+Elapsed execution time: 1.711081 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint8_t
+```
+
+```
+Elapsed execution time: 1.183555 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint64_t
+Elapsed execution time: 0.637817 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint32_t
+Elapsed execution time: 0.277528 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint16_t
+Elapsed execution time: 0.138989 sec; N: 8192, I: 100000, __OP__: +, __TYPE__: uint8_t
+```
+
 ## write-up 8
 
 ### arm <<
