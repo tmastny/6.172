@@ -85,4 +85,10 @@ void bitarray_rotate(bitarray_t* const bitarray,
                      const size_t bit_length,
                      const ssize_t bit_right_amount);
 
+// Original rotate function for reference
+void bitarray_rotate_ref(bitarray_t* const bitarray,
+                     const size_t bit_offset,
+                     const size_t bit_length,
+                     const ssize_t bit_right_amount);
+
 #endif  // BITARRAY_H
