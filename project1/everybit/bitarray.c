@@ -169,7 +169,7 @@ void bitarray_set(bitarray_t* const bitarray, const size_t bit_index,
 
 void bitarray_randfill(bitarray_t* const bitarray) {
     int32_t* ptr = (int32_t*)bitarray->buf;
-    for (int64_t i = 0; i < bitarray->bit_sz / 32 + 1; i++) {
+    for (int64_t i = 0; i < (bitarray->bit_sz + 31) / 32; i++) {
         ptr[i] = rand();
     }
 }
@@ -188,10 +188,10 @@ void reverse(bitarray_t* const bitarray, const size_t start, const size_t end) {
 void rotate(bitarray_t* const bitarray, const size_t bit_start,
             const size_t bit_end, const ssize_t bit_right_shift) {
     size_t shift_idx = bit_start + bit_right_shift;
-    
+
     reverse(bitarray, bit_start, shift_idx);
     reverse(bitarray, shift_idx, bit_end);
-    
+
     reverse(bitarray, bit_start, bit_end);
 }
 

@@ -114,4 +114,10 @@ test: $(PRODUCT)
 testquiet: $(PRODUCT)
 	../test.py --quiet $(PRODUCT)
 
-.PHONY:		all clean
+fuzz.o: fuzz.c bitarray.h
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ -c $<
+
+fuzz: fuzz.o bitarray.o
+	$(CC) $^ $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
+
+.PHONY:		all clean fuzz
