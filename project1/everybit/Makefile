@@ -50,6 +50,12 @@
 SOURCES = $(wildcard *.c)
 HEADERS = $(wildcard *.h)
 
+MAIN_SOURCES = main.c tests.c bitarray.c ktiming.c
+MAIN_OBJECTS = $(MAIN_SOURCES:.c=.o)
+
+FUZZ_SOURCES = fuzz.c bitarray.c
+FUZZ_OBJECTS = $(FUZZ_SOURCES:.c=.o)
+
 # What we're building
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
 PRODUCT = everybit
@@ -57,7 +63,7 @@ PRODUCT = everybit
 # What we're building with
 CC = clang
 CFLAGS = -std=c99 -Wall -m64 -g
-LDFLAGS = -flto -fuse-ld=gold 
+LDFLAGS = -flto -fuse-ld=gold
 
 # We need to link against the timing library for whatever OS we're on.
 PLATFORM = $(shell uname)
@@ -101,8 +107,8 @@ all:		$(PRODUCT)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ -c $<
 
 # How to link the product
-$(PRODUCT):	$(OBJECTS) .buildmode
-	$(CC) $(OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
+$(PRODUCT): $(MAIN_OBJECTS) .buildmode
+	$(CC) $(MAIN_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 # How to clean up
 clean:
@@ -117,7 +123,7 @@ testquiet: $(PRODUCT)
 fuzz.o: fuzz.c bitarray.h
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ -c $<
 
-fuzz: fuzz.o bitarray.o
-	$(CC) $^ $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
+fuzz: $(FUZZ_OBJECTS) .buildmode
+	$(CC) $(FUZZ_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 .PHONY:		all clean fuzz
