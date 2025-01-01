@@ -25,10 +25,8 @@ def rotate(s, index, length, rshift):
         return s
 
     rshift %= length
-    if rshift > 0:
-        rshift = abs(rshift - length)
-    else:
-        rshift = abs(rshift)
+    rshift = abs(rshift - length)
+
 
     left = "".join(s[0:index])
     substr = "".join(s[index: index + length])
