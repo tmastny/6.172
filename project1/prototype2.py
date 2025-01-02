@@ -1,4 +1,3 @@
-from unittest.mock import right
 def reverse_byte(b):
     b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4)
     b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2)
