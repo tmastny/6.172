@@ -53,8 +53,8 @@ def shift_bytes(s, shift):
         raise ValueError("Invalid shift direction")
 
 def set_ends(s, start_mask, end_mask):
-    s[0] = ~start_mask[0] & s[0] | start_mask[1]
-    s[len(s) - 1] = ~end_mask[0] & s[0] | end_mask[1]
+    s[0] = s[0] & ~start_mask[0] | start_mask[1]
+    s[len(s) - 1] = s[len(s) - 1] & ~end_mask[0]  | end_mask[1]
 
 def calc_shift(start, end):
     # example 1: ---34567 b1 b2 012-----
@@ -96,6 +96,7 @@ def reverse(s, start, end):
 
     set_ends(s, start_mask, end_mask)
     print_array(s, "mask")
+    print()
 
 s0 = [0b10001_011, 0b10100011, 0b11110111, 0b11011_010]
 #       01234 567    89012345    67890123    45678 9
@@ -112,7 +113,7 @@ s1 = [0b010_11011, 0b10100011, 0b11110111, 0b100_01011]
 #          ^start                               ^end
 #    010_11011, 10100011, 11110111, 100_01011
 #    010_00111  11101111  11000101  11011_010
-e1 = [0b010_00111, 0b10111111, 0b00010111, 0b010_01011]
+e1 = [0b010_00111, 0b10111111, 0b00010111, 0b011_01011]
 
 #reverse_byte:   11011010, 11000101, 11101111, 11010001
 # reverse_array: 11010001, 11101111, 11000101, 11011010
@@ -122,10 +123,7 @@ e1 = [0b010_00111, 0b10111111, 0b00010111, 0b010_01011]
 # mask:  01000111, 10111111, 00010111, 01001011
 
 reverse(s0, 5, 29)
-s0 == e0
+assert s0 == e0
 
-# reverse(s1, 3, 27)
-# s1 == e1
-# reverse_array  :   010_11011, 11101111, 11000101, 110_10001
-# shift          : 00010_11011, 11101111, 11000101, 110_100
-# mask           : 10001_110, 11111011, 11110001, 10001_010
+reverse(s1, 3, 27)
+assert s1 == e1
