@@ -9,7 +9,7 @@ def as_bitarray(s):
     for i in range(len(s)):
         b = (b << 8) | s[i]
 
-    return f"{b:08b}"
+    return f"{b:0{len(s) * 8}b}"
 
 
 def print_array(s, part="a"):
@@ -109,6 +109,54 @@ def reverse(s, start, end):
     set_ends(s, start_mask, end_mask)
 
 
+def parse_bitarry(b):
+    bytes = []
+    # First byte - no padding
+    first_byte = b[:min(8, len(b))]
+    bytes.append(int(first_byte, 2))
+
+    # Remaining bytes - pad with zeros
+    for i in range(8, len(b), 8):
+        byte = b[i:i+8]
+        byte = byte.ljust(8, '0')  # pad with zeros
+        bytes.append(int(byte, 2))
+
+    return bytes
+
+def test_parse():
+    test_cases = [
+        {
+            "name": "Parse test 1",
+            "input": "10001011101000111111011111011010",
+            "expected": [0b10001011, 0b10100011, 0b11110111, 0b11011010],
+        },
+        {
+            "name": "Parse test 2",
+            "input": "01011011101000111111011110001011",
+            "expected": [0b01011011, 0b10100011, 0b11110111, 0b10001011],
+        },
+        {
+            "name": "Uneven bitarray",
+            "input": "0101101101",
+            "expected": [0b01011011, 0b01000000],
+        },
+        {
+            "name": "Small bitarray",
+            "input": "101",
+            "expected": [0b101],
+        },
+    ]
+
+    for case in test_cases:
+        print(f"\n{case['name']}:")
+        print(f"Input binary:  {case['input']}")
+        result = parse_bitarry(case["input"])
+        print(f"Result array:  {', '.join([f'{b:08b}' for b in result])}")
+        print(f"Expected array:{', '.join([f'{b:08b}' for b in case['expected']])}")
+        assert result == case["expected"], f"{case['name']} failed"
+        print(f"{case['name']} passed")
+
+
 def test_reverse():
     test_cases = [
         {
@@ -142,8 +190,13 @@ def test_reverse():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Bit array rotation")
     parser.add_argument("-r", "--run-tests", action="store_true", help="Run test cases")
+    parser.add_argument(
+        "-p", "--test-parse", action="store_true", help="Test parse_bitarray"
+    )
 
     args = parser.parse_args()
 
     if args.run_tests:
         test_reverse()
+    if args.test_parse:
+        test_parse()
