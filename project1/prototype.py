@@ -1,11 +1,11 @@
 def reverse(s, start, end):
-
     j = end
     for i in range(start, (start + end) // 2):
         j -= 1
         s[i], s[j] = s[j], s[i]
 
     return s
+
 
 def rot(s, start, end, shift):
     shift_idx = start + shift
@@ -18,6 +18,7 @@ def rot(s, start, end, shift):
 
     return reverse(s, start, end)
 
+
 def rotate(s, index, length, rshift):
     assert index + length <= len(s)
 
@@ -27,10 +28,9 @@ def rotate(s, index, length, rshift):
     rshift %= length
     rshift = abs(rshift - length)
 
-
     left = "".join(s[0:index])
-    substr = "".join(s[index: index + length])
-    right = "".join(s[index + length:])
+    substr = "".join(s[index : index + length])
+    right = "".join(s[index + length :])
     print(f"index: {index}, length: {length}, rshift: {rshift}")
     print(f"left: {left}, substr: {substr}, right: {right}")
 
@@ -40,6 +40,7 @@ def rotate(s, index, length, rshift):
     print("result: " + "".join(s) + "\n")
 
     return "".join(s)
+
 
 if __name__ == "__main__":
     with open("everybit/tests/default") as f:
@@ -63,17 +64,17 @@ if __name__ == "__main__":
         parts = line.split()
         command = parts[0]
 
-        if command == 't':
+        if command == "t":
             test_num = int(parts[1])
             print(f"--- Test {test_num} ---")
-        elif command == 'n':
+        elif command == "n":
             bit_array = parts[1]
-        elif command == 'r':
+        elif command == "r":
             index = int(parts[1])
             length = int(parts[2])
             shift = int(parts[3])
             bit_array = rotate(bit_array, index, length, shift)
-        elif command == 'e':
+        elif command == "e":
             expected_array = parts[1]
             print(f"Expected: {expected_array}, Actual: {bit_array}")
             if bit_array != expected_array:
@@ -81,8 +82,8 @@ if __name__ == "__main__":
                 tests_failed += 1
                 failed_tests.append(test_num)
             else:
-                 print(f"{GREEN}Test {test_num} passed!{RESET}")
-                 tests_passed += 1
+                print(f"{GREEN}Test {test_num} passed!{RESET}")
+                tests_passed += 1
         else:
             print(f"Unknown command {command}")
 
