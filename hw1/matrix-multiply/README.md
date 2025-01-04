@@ -86,10 +86,10 @@ continuous block of memory, rather an pointers to different
 columns that might need to be fetched from higher levels of cache.
 ```
 "over j"
-  j = 0         |     j = 1       |     j = 2  
-  c00 = a00*b00 |   c00 = a01*b10 |   c00 = a02*b20
-  c01 = a00*b01 |   c01 = a01*b11 |   c01 = a02*b21
-  c02 = a00*b02 |   c02 = a01*b12 |   c02 = a02*b22
+     j = 0       |      j = 1       |      j = 2  
+  c00 += a00*b00 |   c00 += a01*b10 |   c00 += a02*b20
+  c01 += a00*b01 |   c01 += a01*b11 |   c01 += a02*b21
+  c02 += a00*b02 |   c02 += a01*b12 |   c02 += a02*b22
 
 a entry constant,  b iterating cache aware
 
