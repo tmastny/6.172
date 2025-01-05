@@ -33,9 +33,11 @@ def reverse_array(s, start, end):
 
     return s
 
+
 def print_mask(mask):
     mask, byte, byte_index = mask
     print(f"mask: {mask:08b}, byte: {byte:08b}, byte_index: {byte_index}")
+
 
 def left_mask(s, index):
     byte_index = index // 8
@@ -55,40 +57,39 @@ def right_mask(s, index):
     bit_index = 8 - (index % 8)
 
     byte = s[byte_index]
-    
 
     mask = 0xFF >> (8 - bit_index)
     return mask, byte & mask, byte_index
 
 
-def rshift_bytes(s, shift):
+def rshift_bytes(s, start_byte_index, end_byte_index, shift):
     #       rev: ---543210 2b 1b 765-----
     #     shift:   >> 2
-    for i in range(len(s) - 1, 0, -1):
+    for i in range(end_byte_index - 1, start_byte_index, -1):
         s[i] = ((s[i - 1] << 8) | s[i]) >> shift
         s[i] &= 0xFF
 
-    s[0] >>= shift
+    s[start_byte_index] >>= shift
 
 
-def lshift_bytes(s, shift):
-    for i in range(len(s) - 1):
+def lshift_bytes(s, start_byte_index, end_byte_index, shift):
+    for i in range(start_byte_index, end_byte_index - 1):
         s[i] = ((s[i] << 8) | s[i + 1]) << shift
         s[i] &= 0xFF00
         s[i] >>= 8
 
-    s[len(s) - 1] <<= shift
-    s[len(s) - 1] &= 0xFF
+    s[end_byte_index - 1] <<= shift
+    s[end_byte_index - 1] &= 0xFF
 
 
-def shift_bytes(s, shift):
+def shift_bytes(s, start_byte_index, end_byte_index, shift):
     if shift == 0:
         return
 
     if shift[0] == RSHIFT:
-        rshift_bytes(s, shift[1])
+        rshift_bytes(s, start_byte_index, end_byte_index, shift[1])
     elif shift[0] == LSHIFT:
-        lshift_bytes(s, shift[1])
+        lshift_bytes(s, start_byte_index, end_byte_index, shift[1])
     else:
         raise ValueError("Invalid shift direction")
 
@@ -111,7 +112,7 @@ def calc_shift(start, end):
     #                 ^start: 5       ^end : 29
     #       rev: ---543210 2b 1b 765-----
     #     shift:   >> 2
-    left = start
+    left = start % 8
     right = (8 - end % 8) % 8
 
     shift = right - left
@@ -124,27 +125,31 @@ def reverse(s, start, end):
     start_mask = left_mask(s, start)
     end_mask = right_mask(s, end)
 
-    for i in range(len(s)):
+    _, _, start_byte_index = start_mask
+    _, _, end_byte_index = end_mask
+
+    for i in range(start_byte_index, end_byte_index + 1):
         s[i] = reverse_byte(s[i])
 
-    reverse_array(s, 0, len(s))
-    shift_bytes(s, calc_shift(start, end))
+    reverse_array(s, start_byte_index, end_byte_index + 1)
+    shift_bytes(s, start_byte_index, end_byte_index + 1, calc_shift(start, end))
     set_ends(s, start_mask, end_mask)
 
 
 def parse_bitarray(b):
     bytes = []
     # First byte - no padding
-    first_byte = b[:min(8, len(b))]
+    first_byte = b[: min(8, len(b))]
     bytes.append(int(first_byte, 2))
 
     # Remaining bytes - pad with zeros
     for i in range(8, len(b), 8):
-        byte = b[i:i+8]
-        byte = byte.ljust(8, '0')  # pad with zeros
+        byte = b[i : i + 8]
+        byte = byte.ljust(8, "0")  # pad with zeros
         bytes.append(int(byte, 2))
 
     return bytes
+
 
 def test_parse():
     test_cases = [
@@ -216,6 +221,7 @@ def test_reverse():
         assert case["input"] == case["expected"], f"{case['name']} failed"
         print(f"{case['name']} passed")
 
+
 def test_rotate():
     test_cases = [
         {
@@ -230,9 +236,9 @@ def test_rotate():
 
     for case in test_cases:
         print(f"\n{case['name']}:")
-        print(f"Input binary:  {case['input']}")
+        print(f"Input binary   : {case['input']}")
         result = rotate(case["input"], case["index"], case["length"], case["rshift"])
-        print(f"Result binary: {result}")
+        print(f"Result binary  : {result}")
         print(f"Expected binary: {case['expected']}")
         assert result == case["expected"], f"{case['name']} failed"
         print(f"{case['name']} passed")
@@ -244,7 +250,7 @@ def rot(s, start, end, shift):
     reverse(s, start, shift_idx)
     reverse(s, shift_idx, end)
 
-    return reverse(s, start, end)
+    reverse(s, start, end)
 
 
 def rotate(s, index, length, rshift):
@@ -259,20 +265,18 @@ def rotate(s, index, length, rshift):
     s = parse_bitarray(s)
     rot(s, index, index + length, rshift)
 
-    ba = as_bitarray(s)
-    print(f"result: {ba}\n")
-    
-test_reverse()
+    return as_bitarray(s)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Bit array rotation")
-    parser.add_argument("-r", "--test-reverse", action="store_true", help="Test reverse")
+    parser.add_argument(
+        "-r", "--test-reverse", action="store_true", help="Test reverse"
+    )
     parser.add_argument(
         "-p", "--test-parse", action="store_true", help="Test parse_bitarray"
     )
-    parser.add_argument(
-        "-t", "--test-rotate", action="store_true", help="Test rotate"
-    )
+    parser.add_argument("-t", "--test-rotate", action="store_true", help="Test rotate")
 
     args = parser.parse_args()
 
