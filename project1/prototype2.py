@@ -1,16 +1,42 @@
 import argparse
-from prototype import rotate
 
 RSHIFT = 0
 LSHIFT = 1
 
+class BitStream:
+    def __init__(self):
+        self.padding = 0
+        self.bytes = []
 
-def as_bitarray(s):
-    b = 0
-    for i in range(len(s)):
-        b = (b << 8) | s[i]
+    def parse(self, binary_string):
+        self.padding = 0
+        self.bytes = []
+        
+        # First byte - no padding
+        first_byte = binary_string[: min(8, len(binary_string))]
+        self.bytes.append(int(first_byte, 2))
 
-    return f"{b:0{len(s) * 8}b}"
+        # Remaining bytes - track padding
+        for i in range(8, len(binary_string), 8):
+            byte = binary_string[i : i + 8]
+            if len(byte) < 8:
+                self.padding = 8 - len(byte)
+                byte = byte.ljust(8, "0")  # pad with zeros
+            self.bytes.append(int(byte, 2))
+
+        return self.bytes
+
+    def as_string(self):
+        b = 0
+        for i in range(len(self.bytes)):
+            b = (b << 8) | self.bytes[i]
+
+        binary = f"{b:0{len(self.bytes) * 8}b}"
+        if self.padding:
+            # Remove the padding we added earlier
+            binary = binary[:-self.padding]
+        
+        return binary
 
 
 def print_array(s, part="a"):
@@ -41,6 +67,9 @@ def print_mask(mask):
 
 def left_mask(s, index):
     byte_index = index // 8
+    if byte_index == len(s):
+        return 0, 0, len(s) - 1
+
     bit_index = index % 8
 
     byte = s[byte_index]
@@ -136,21 +165,6 @@ def reverse(s, start, end):
     set_ends(s, start_mask, end_mask)
 
 
-def parse_bitarray(b):
-    bytes = []
-    # First byte - no padding
-    first_byte = b[: min(8, len(b))]
-    bytes.append(int(first_byte, 2))
-
-    # Remaining bytes - pad with zeros
-    for i in range(8, len(b), 8):
-        byte = b[i : i + 8]
-        byte = byte.ljust(8, "0")  # pad with zeros
-        bytes.append(int(byte, 2))
-
-    return bytes
-
-
 def test_parse():
     test_cases = [
         {
@@ -178,7 +192,8 @@ def test_parse():
     for case in test_cases:
         print(f"\n{case['name']}:")
         print(f"Input binary:  {case['input']}")
-        result = parse_bitarray(case["input"])
+        bit_stream = BitStream()
+        result = bit_stream.parse(case["input"])
         print(f"Result array:  {', '.join([f'{b:08b}' for b in result])}")
         print(f"Expected array:{', '.join([f'{b:08b}' for b in case['expected']])}")
         assert result == case["expected"], f"{case['name']} failed"
@@ -224,13 +239,29 @@ def test_reverse():
 
 def test_rotate():
     test_cases = [
+    #     {
+    #         "name": "Test case 0",
+    #         "input": "10001011101000111111011111011010",
+    #         "expected": "01000101110100011111101111101101",
+    #         "index": 0,
+    #         "length": 32,
+    #         "rshift": 1,
+    #     },
+    #     {
+    #         "name": "Test case 1",
+    #         "input":    "10000101",
+    #         "expected": "10000101",
+    #         "index": 0,
+    #         "length": 8,
+    #         "rshift": 0,
+    #     },
         {
-            "name": "Test case 0",
-            "input": "10001011101000111111011111011010",
-            "expected": "01000101110100011111101111101101",
-            "index": 0,
-            "length": 32,
-            "rshift": 1,
+            "name": "Test case 2",
+            "input": "1011100011",
+            "expected": "1011111000",
+            "index": 5,
+            "length": 5,
+            "rshift": 2,
         },
     ]
 
@@ -256,16 +287,20 @@ def rot(s, start, end, shift):
 def rotate(s, index, length, rshift):
     assert index + length <= len(s)
 
+    if rshift == 0:
+        return s
+
     if length == 0:
         return s
 
     rshift %= length
     rshift = abs(rshift - length)
 
-    s = parse_bitarray(s)
+    bit_stream = BitStream()
+    s = bit_stream.parse(s)
     rot(s, index, index + length, rshift)
 
-    return as_bitarray(s)
+    return bit_stream.as_string()
 
 
 if __name__ == "__main__":
@@ -279,10 +314,13 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--test-rotate", action="store_true", help="Test rotate")
 
     args = parser.parse_args()
-
-    if args.test_reverse:
+    
+    # If no flags are set, run all tests
+    run_all = not (args.test_reverse or args.test_parse or args.test_rotate)
+    
+    if run_all or args.test_reverse:
         test_reverse()
-    if args.test_parse:
+    if run_all or args.test_parse:
         test_parse()
-    if args.test_rotate:
+    if run_all or args.test_rotate:
         test_rotate()
