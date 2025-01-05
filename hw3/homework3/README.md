@@ -288,6 +288,22 @@ We see the same pattern in the vectorized version:
 99.59 :   11f0:   movdqa 0x8020(%rsp,%rax,4),%xmm0
 ```
 
+#### on arm
+
+```asm
+   57.76 :   954:    ldp     q0, q1, [x14], #32
+    1.86 :   958:    sub     x18, x17, #0x8
+    0.00 :   95c:    add     x0, x17, #0x8
+    0.00 :   960:    subs    x16, x16, #0x4
+    0.04 :   964:    ldp     q2, q3, [x15], #32
+    7.87 :   968:    add     v0.4s, v2.4s, v0.4s
+    0.04 :   96c:    add     v1.4s, v3.4s, v1.4s
+    0.06 :   970:    stur    s0, [x17, #-16]
+    7.20 :   974:    st1     {v0.s}[2], [x18]
+   21.76 :   978:    str     s1, [x17], #32
+    3.37 :   97c:    st1     {v1.s}[2], [x0]
+    0.00 :   980:    b.ne    954 <main+0x100>  // b.any
+```
 
 
 ### arm speedup

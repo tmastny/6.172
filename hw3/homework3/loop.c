@@ -43,7 +43,8 @@
 #define _stringify(V) #V
 
 int main(int argc, char *argv[]) {
-    int N = atoi(argv[1]);
+    // int N = atoi(argv[1]);
+    int N = 100000;
 
     __TYPE__ A[N];
     __TYPE__ B[N];
@@ -65,7 +66,6 @@ int main(int argc, char *argv[]) {
     fasttime_t time1 = gettime();
 
     for (i = 0; i < I; i++) {
-        #pragma clang loop vectorize_width(2)
         for (j = 0; j < N; j += 2) {
             C[j] = A[j] __OP__ B[j];
         }
