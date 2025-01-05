@@ -16,7 +16,7 @@ def rot(s, start, end, shift):
     reverse(s, shift_idx, end)
     print(s[shift_idx:end])
 
-    return reverse(s, start, end)
+    reverse(s, start, end)
 
 
 def rotate(s, index, length, rshift):
@@ -40,4 +40,3 @@ def rotate(s, index, length, rshift):
     print("result: " + "".join(s) + "\n")
 
     return "".join(s)
-
