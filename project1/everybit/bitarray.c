@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 // ********************************* Types **********************************
 
@@ -43,6 +44,55 @@ struct bitarray {
     // packed form (8 per byte).
     char* buf;
 };
+
+typedef enum { LSHIFT, RSHIFT } shift_direction;
+
+typedef struct bitarray_mask {
+    char mask;
+    char byte;
+    size_t byte_index;
+} bitarray_mask;
+
+void left_mask(bitarray_mask* lmask, bitarray_t* const bitarray,
+               const size_t bit_index) {
+    size_t byte_index = bit_index / 8;
+    if (byte_index == bitarray->bit_sz / 8) {
+        lmask->mask = 0;
+        lmask->byte = 0;
+        // TODO: fix negative byte_index
+        lmask->byte_index = bitarray->bit_sz / 8 - 1;
+        return;
+    }
+
+    lmask->mask = 0xFF >> (8 - bit_index);
+    lmask->mask = lmask->mask << (8 - bit_index);
+
+    lmask->byte = bitarray->buf[byte_index] & lmask->mask;
+    lmask->byte_index = byte_index;
+}
+
+void right_mask(bitarray_mask* rmask, bitarray_t* const bitarray,
+                size_t bit_index) {
+    if (bit_index % 8 == 0) {
+        rmask->mask = 0;
+        rmask->byte = 0;
+        rmask->byte_index = bit_index / 8 - 1;
+        return;
+    }
+
+    size_t byte_index = bit_index / 8;
+    if (byte_index == bitarray->bit_sz / 8) {
+        rmask->mask = 0;
+        rmask->byte = 0;
+        rmask->byte_index = bit_index / 8 - 1;
+        return;
+    }
+
+    bit_index = 8 - bit_index % 8;
+    rmask->mask = 0xFF >> (8 - bit_index);
+    rmask->byte = bitarray->buf[byte_index] & rmask->mask;
+    rmask->byte_index = byte_index;
+}
 
 // ******************** Prototypes for static functions *********************
 
@@ -174,15 +224,92 @@ void bitarray_randfill(bitarray_t* const bitarray) {
     }
 }
 
-void reverse(bitarray_t* const bitarray, const size_t start, const size_t end) {
+void reverse_byte(char* byte) {
+    *byte = ((*byte & 0xF0) >> 4) | ((*byte & 0x0F) << 4);
+    *byte = ((*byte & 0xCC) >> 2) | ((*byte & 0x33) << 2);
+    *byte = ((*byte & 0xAA) >> 1) | ((*byte & 0x55) << 1);
+}
+
+void reverse_array(char* array, size_t start, size_t end) {
+    char temp;
     size_t j = end;
-    size_t mid = (start + end) / 2;
-    for (int i = start; i < mid; i++) {
+    for (size_t i = start; i < (start + end) / 2; i++) {
         j--;
-        bool temp = bitarray_get(bitarray, i);
-        bitarray_set(bitarray, i, bitarray_get(bitarray, j));
-        bitarray_set(bitarray, j, temp);
+        temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
     }
+}
+
+ssize_t calc_shift(size_t start, size_t end) {
+    ssize_t left = start % 8;
+    ssize_t right = (8 - end % 8) % 8;
+    return right - left;
+}
+
+void left_shift(char* array, size_t start, size_t end, size_t shift) {
+    for (size_t i = start; i < end - 1; i++) {
+        uint16_t temp = ((array[i] << 8) | array[i + 1]) << shift;
+        temp >>= 8;
+        array[i] = temp;
+    }
+
+    array[end - 1] <<= shift;
+}
+
+void right_shift(char* array, size_t start, size_t end, size_t shift) {
+    for (size_t i = end - 1; i > start; i--) {
+        uint16_t temp = ((array[i] << 8) | array[i - 1]) >> shift;
+        array[i] = temp;
+    }
+
+    array[start] >>= shift;
+}
+
+void shift_bytes(char* array, size_t start, size_t end, ssize_t shift) {
+    if (shift == 0) {
+        return;
+    }
+
+    shift_direction direction = shift > 0 ? LSHIFT : RSHIFT;
+    shift = labs(shift);
+
+    if (direction == LSHIFT) {
+        left_shift(array, start, end, shift);
+    } else if (direction == RSHIFT) {
+        right_shift(array, start, end, shift);
+    } else {
+        return;
+    }
+}
+
+void set_ends(char* array, bitarray_mask* lmask, bitarray_mask* rmask) {
+    array[lmask->byte_index] =
+        (array[lmask->byte_index] & ~lmask->mask) | lmask->byte;
+    array[rmask->byte_index] =
+        (array[rmask->byte_index] & ~rmask->mask) | rmask->byte;
+}
+
+void reverse(bitarray_t* const bitarray, const size_t start, const size_t end) {
+    if (start + 1 >= end) {
+        return;
+    }
+
+    bitarray_mask lmask, rmask;
+
+    left_mask(&lmask, bitarray, start);
+    right_mask(&rmask, bitarray, end);
+
+    for (size_t i = lmask.byte_index; i <= rmask.byte_index; i++) {
+        reverse_byte(&bitarray->buf[i]);
+    }
+
+    reverse_array(bitarray->buf, lmask.byte_index, rmask.byte_index + 1);
+
+    shift_bytes(bitarray->buf, lmask.byte_index, rmask.byte_index + 1,
+                calc_shift(start, end));
+
+    set_ends(bitarray->buf, &lmask, &rmask);
 }
 
 void rotate(bitarray_t* const bitarray, const size_t bit_start,

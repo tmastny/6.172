@@ -81,6 +81,7 @@ def left_mask(s, index):
 
 
 def right_mask(s, index):
+    # TODO: fix negative byte_index
     if index % 8 == 0:
         return 0, 0, index // 8 - 1
 
@@ -338,7 +339,7 @@ def test_rotate_random():
 
     tests_passed = 0
     for i in range(NUM_TESTS):
-        length = random.randint(8, MAX_LENGTH)
+        length = random.randint(1, MAX_LENGTH)
         binary = ''.join(random.choice('01') for _ in range(length))
 
         index = random.randint(0, length-1)
