@@ -331,11 +331,12 @@ def rotate_ref(s, index, length, rshift):
 
 
 def test_rotate_random():
-    NUM_TESTS = 100
+    NUM_TESTS = 1000
     MAX_LENGTH = 50
 
     random.seed(3143)
 
+    tests_passed = 0
     for i in range(NUM_TESTS):
         length = random.randint(8, MAX_LENGTH)
         binary = ''.join(random.choice('01') for _ in range(length))
@@ -344,19 +345,22 @@ def test_rotate_random():
         rot_length = random.randint(1, length - index)
         rshift = random.randint(0, rot_length)
 
-        print(f"\nRandom Test {i}:")
-        print(f"Input binary   : {binary}")
-        print(f"index: {index}, length: {rot_length}, rshift: {rshift}")
-
         # Get results from both implementations
         result = rotate(binary, index, rot_length, rshift)
         expected = rotate_ref(binary, index, rot_length, rshift)
-
-        print(f"Result binary  : {result}")
-        print(f"Expected binary: {expected}")
         
-        assert result == expected, f"Random test {i} failed"
-        print(f"Random test {i} passed")
+        try:
+            assert result == expected
+            tests_passed += 1
+        except AssertionError:
+            print(f"\nRandom Test {i} failed:")
+            print(f"Input binary   : {binary}")
+            print(f"index: {index}, length: {rot_length}, rshift: {rshift}")
+            print(f"Result binary  : {result}")
+            print(f"Expected binary: {expected}")
+            break
+    else:
+        print(f"\nAll {NUM_TESTS} random tests passed!")
 
 def rot(s, start, end, shift):
     shift_idx = start + shift
