@@ -1,4 +1,6 @@
 import argparse
+import random
+from collections import deque
 
 RSHIFT = 0
 LSHIFT = 1
@@ -79,6 +81,9 @@ def left_mask(s, index):
 
 
 def right_mask(s, index):
+    if index % 8 == 0:
+        return 0, 0, index // 8 - 1
+
     byte_index = index // 8
     if byte_index == len(s):
         return 0, 0, len(s) - 1
@@ -151,6 +156,9 @@ def calc_shift(start, end):
 
 
 def reverse(s, start, end):
+    if start + 1 >= end:
+        return
+
     start_mask = left_mask(s, start)
     end_mask = right_mask(s, end)
 
@@ -239,22 +247,22 @@ def test_reverse():
 
 def test_rotate():
     test_cases = [
-    #     {
-    #         "name": "Test case 0",
-    #         "input": "10001011101000111111011111011010",
-    #         "expected": "01000101110100011111101111101101",
-    #         "index": 0,
-    #         "length": 32,
-    #         "rshift": 1,
-    #     },
-    #     {
-    #         "name": "Test case 1",
-    #         "input":    "10000101",
-    #         "expected": "10000101",
-    #         "index": 0,
-    #         "length": 8,
-    #         "rshift": 0,
-    #     },
+        {
+            "name": "Test case 0",
+            "input": "10001011101000111111011111011010",
+            "expected": "01000101110100011111101111101101",
+            "index": 0,
+            "length": 32,
+            "rshift": 1,
+        },
+        {
+            "name": "Test case 1",
+            "input":    "10000101",
+            "expected": "10000101",
+            "index": 0,
+            "length": 8,
+            "rshift": 0,
+        },
         {
             "name": "Test case 2",
             "input": "1011100011",
@@ -262,6 +270,46 @@ def test_rotate():
             "index": 5,
             "length": 5,
             "rshift": 2,
+        },
+        {
+            "name": "Test case 3",
+            "input": "11101011",
+            "expected": "11010111",
+            "index": 0,
+            "length": 8,
+            "rshift": 7,
+        },
+        {
+            "name": "Test case 4",
+            "input": "11101011",
+            "expected": "11010111",
+            "index": 0,
+            "length": 8,
+            "rshift": -1,
+        },
+        {
+            "name": "Test case 5",
+            "input":    "011001000001000" + "11101011" + "011",
+            "expected": "011001000001000" + "11010111" + "011",
+            "index": 15,
+            "length": 8,
+            "rshift": 7,
+        },
+        {
+            "name": "Test case 6",
+            "input": "10000110101",
+            "expected": "10110000110",
+            "index": 0,
+            "length": 11,
+            "rshift": 3,
+        },
+        {
+            "name": "Test case 7",
+            "input": "00101011",
+            "expected": "00101011",
+            "index": 7,
+            "length": 1,
+            "rshift": 1,
         },
     ]
 
@@ -274,6 +322,41 @@ def test_rotate():
         assert result == case["expected"], f"{case['name']} failed"
         print(f"{case['name']} passed")
 
+
+def rotate_ref(s, index, length, rshift):
+    d = deque(s)
+    sub_d = deque(s[index:index+length])
+    sub_d.rotate(rshift)
+    return s[:index] + ''.join(sub_d) + s[index+length:]
+
+
+def test_rotate_random():
+    NUM_TESTS = 100
+    MAX_LENGTH = 50
+
+    random.seed(3143)
+
+    for i in range(NUM_TESTS):
+        length = random.randint(8, MAX_LENGTH)
+        binary = ''.join(random.choice('01') for _ in range(length))
+
+        index = random.randint(0, length-1)
+        rot_length = random.randint(1, length - index)
+        rshift = random.randint(0, rot_length)
+
+        print(f"\nRandom Test {i}:")
+        print(f"Input binary   : {binary}")
+        print(f"index: {index}, length: {rot_length}, rshift: {rshift}")
+
+        # Get results from both implementations
+        result = rotate(binary, index, rot_length, rshift)
+        expected = rotate_ref(binary, index, rot_length, rshift)
+
+        print(f"Result binary  : {result}")
+        print(f"Expected binary: {expected}")
+        
+        assert result == expected, f"Random test {i} failed"
+        print(f"Random test {i} passed")
 
 def rot(s, start, end, shift):
     shift_idx = start + shift
@@ -312,10 +395,12 @@ if __name__ == "__main__":
         "-p", "--test-parse", action="store_true", help="Test parse_bitarray"
     )
     parser.add_argument("-t", "--test-rotate", action="store_true", help="Test rotate")
+    parser.add_argument(
+        "-R", "--test-random", action="store_true", help="Test random rotations"
+    )
 
     args = parser.parse_args()
     
-    # If no flags are set, run all tests
     run_all = not (args.test_reverse or args.test_parse or args.test_rotate)
     
     if run_all or args.test_reverse:
@@ -324,3 +409,6 @@ if __name__ == "__main__":
         test_parse()
     if run_all or args.test_rotate:
         test_rotate()
+    if run_all or args.test_random:
+        test_rotate_random()
+
