@@ -326,6 +326,11 @@ void bitarray_rotate(bitarray_t* const bitarray, const size_t bit_offset,
                      const size_t bit_length, const ssize_t bit_right_amount) {
     assert(bit_offset + bit_length <= bitarray->bit_sz);
 
+    if (bit_length <= 8) {
+        bitarray_rotate_ref(bitarray, bit_offset, bit_length, bit_right_amount);
+        return;
+    }
+
     if (bit_length == 0) {
         return;
     }

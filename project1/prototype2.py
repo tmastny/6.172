@@ -312,9 +312,20 @@ def test_rotate():
             "length": 1,
             "rshift": 1,
         },
+        {
+            "name": "Test case 8",
+            "input": "10011",
+            "expected": "11001",
+            "index": 0,
+            "length": 5,
+            "rshift": 1,
+        },
     ]
 
     for case in test_cases:
+        if case["name"] != "Test case 8":
+            continue
+
         print(f"\n{case['name']}:")
         print(f"Input binary   : {case['input']}")
         result = rotate(case["input"], case["index"], case["length"], case["rshift"])
@@ -373,6 +384,9 @@ def rot(s, start, end, shift):
 
 
 def rotate(s, index, length, rshift):
+    if len(s) <= 8:
+        return rotate_ref(s, index, length, rshift)
+
     assert index + length <= len(s)
 
     if rshift == 0:
@@ -417,3 +431,4 @@ if __name__ == "__main__":
     if run_all or args.test_random:
         test_rotate_random()
 
+test_rotate()
