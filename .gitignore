@@ -1,3 +1,4 @@
 .DS_Store
 cachegrind.out.*
 __pycache__
+test_bitarray

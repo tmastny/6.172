@@ -99,16 +99,21 @@ def right_mask(s, index):
 
 
 def rshift_bytes(s, start_byte_index, end_byte_index, shift):
-    #       rev: ---543210 2b 1b 765-----
-    #     shift:   >> 2
+    print(f"PY rshift_bytes: start={start_byte_index}, end={end_byte_index}, shift={shift}")
+    print("PY before rshift:", [f"{b:08b}" for b in s[start_byte_index:end_byte_index]])
+    
     for i in range(end_byte_index - 1, start_byte_index, -1):
         s[i] = ((s[i - 1] << 8) | s[i]) >> shift
-        s[i] &= 0xFF
 
     s[start_byte_index] >>= shift
+    
+    print("PY after rshift: ", [f"{b:08b}" for b in s[start_byte_index:end_byte_index]])
 
 
 def lshift_bytes(s, start_byte_index, end_byte_index, shift):
+    print(f"PY lshift_bytes: start={start_byte_index}, end={end_byte_index}, shift={shift}")
+    print("PY before lshift:", [f"{b:08b}" for b in s[start_byte_index:end_byte_index]])
+    
     for i in range(start_byte_index, end_byte_index - 1):
         s[i] = ((s[i] << 8) | s[i + 1]) << shift
         s[i] &= 0xFF00
@@ -116,6 +121,8 @@ def lshift_bytes(s, start_byte_index, end_byte_index, shift):
 
     s[end_byte_index - 1] <<= shift
     s[end_byte_index - 1] &= 0xFF
+    
+    print("PY after lshift: ", [f"{b:08b}" for b in s[start_byte_index:end_byte_index]])
 
 
 def shift_bytes(s, start_byte_index, end_byte_index, shift):
@@ -158,21 +165,34 @@ def calc_shift(start, end):
 
 
 def reverse(s, start, end):
+    print(f"\nPY reverse: start={start}, end={end}")
     if start + 1 >= end:
         return
 
     start_mask = left_mask(s, start)
     end_mask = right_mask(s, end)
+    print(f"PY masks:")
+    print(f"  start: mask={start_mask[0]:08b}, byte={start_mask[1]:08b}, idx={start_mask[2]}")
+    print(f"  end  : mask={end_mask[0]:08b}, byte={end_mask[1]:08b}, idx={end_mask[2]}")
 
     _, _, start_byte_index = start_mask
     _, _, end_byte_index = end_mask
 
+    print("PY before reverse_byte:", [f"{b:08b}" for b in s[start_byte_index:end_byte_index+1]])
     for i in range(start_byte_index, end_byte_index + 1):
         s[i] = reverse_byte(s[i])
+    print("PY after reverse_byte: ", [f"{b:08b}" for b in s[start_byte_index:end_byte_index+1]])
 
     reverse_array(s, start_byte_index, end_byte_index + 1)
-    shift_bytes(s, start_byte_index, end_byte_index + 1, calc_shift(start, end))
+    print("PY after reverse_array:", [f"{b:08b}" for b in s[start_byte_index:end_byte_index+1]])
+
+    shift = calc_shift(start, end)
+    print(f"PY shift: direction={'LSHIFT' if shift[0]==LSHIFT else 'RSHIFT'}, amount={shift[1]}")
+    shift_bytes(s, start_byte_index, end_byte_index + 1, shift)
+    print("PY after shift_bytes: ", [f"{b:08b}" for b in s[start_byte_index:end_byte_index+1]])
+
     set_ends(s, start_mask, end_mask)
+    print("PY final result:      ", [f"{b:08b}" for b in s[start_byte_index:end_byte_index+1]])
 
 
 def test_parse():
@@ -257,76 +277,73 @@ def test_rotate():
             "length": 32,
             "rshift": 1,
         },
-        {
-            "name": "Test case 1",
-            "input":    "10000101",
-            "expected": "10000101",
-            "index": 0,
-            "length": 8,
-            "rshift": 0,
-        },
-        {
-            "name": "Test case 2",
-            "input": "1011100011",
-            "expected": "1011111000",
-            "index": 5,
-            "length": 5,
-            "rshift": 2,
-        },
-        {
-            "name": "Test case 3",
-            "input": "11101011",
-            "expected": "11010111",
-            "index": 0,
-            "length": 8,
-            "rshift": 7,
-        },
-        {
-            "name": "Test case 4",
-            "input": "11101011",
-            "expected": "11010111",
-            "index": 0,
-            "length": 8,
-            "rshift": -1,
-        },
-        {
-            "name": "Test case 5",
-            "input":    "011001000001000" + "11101011" + "011",
-            "expected": "011001000001000" + "11010111" + "011",
-            "index": 15,
-            "length": 8,
-            "rshift": 7,
-        },
-        {
-            "name": "Test case 6",
-            "input": "10000110101",
-            "expected": "10110000110",
-            "index": 0,
-            "length": 11,
-            "rshift": 3,
-        },
-        {
-            "name": "Test case 7",
-            "input": "00101011",
-            "expected": "00101011",
-            "index": 7,
-            "length": 1,
-            "rshift": 1,
-        },
-        {
-            "name": "Test case 8",
-            "input": "10011",
-            "expected": "11001",
-            "index": 0,
-            "length": 5,
-            "rshift": 1,
-        },
+        # {
+        #     "name": "Test case 1",
+        #     "input":    "10000101",
+        #     "expected": "10000101",
+        #     "index": 0,
+        #     "length": 8,
+        #     "rshift": 0,
+        # },
+        # {
+        #     "name": "Test case 2",
+        #     "input": "1011100011",
+        #     "expected": "1011111000",
+        #     "index": 5,
+        #     "length": 5,
+        #     "rshift": 2,
+        # },
+        # {
+        #     "name": "Test case 3",
+        #     "input": "11101011",
+        #     "expected": "11010111",
+        #     "index": 0,
+        #     "length": 8,
+        #     "rshift": 7,
+        # },
+        # {
+        #     "name": "Test case 4",
+        #     "input": "11101011",
+        #     "expected": "11010111",
+        #     "index": 0,
+        #     "length": 8,
+        #     "rshift": -1,
+        # },
+        # {
+        #     "name": "Test case 5",
+        #     "input":    "011001000001000" + "11101011" + "011",
+        #     "expected": "011001000001000" + "11010111" + "011",
+        #     "index": 15,
+        #     "length": 8,
+        #     "rshift": 7,
+        # },
+        # {
+        #     "name": "Test case 6",
+        #     "input": "10000110101",
+        #     "expected": "10110000110",
+        #     "index": 0,
+        #     "length": 11,
+        #     "rshift": 3,
+        # },
+        # {
+        #     "name": "Test case 7",
+        #     "input": "00101011",
+        #     "expected": "00101011",
+        #     "index": 7,
+        #     "length": 1,
+        #     "rshift": 1,
+        # },
+        # {
+        #     "name": "Test case 8",
+        #     "input": "10011",
+        #     "expected": "11001",
+        #     "index": 0,
+        #     "length": 5,
+        #     "rshift": 1,
+        # },
     ]
 
     for case in test_cases:
-        if case["name"] != "Test case 8":
-            continue
-
         print(f"\n{case['name']}:")
         print(f"Input binary   : {case['input']}")
         result = rotate(case["input"], case["index"], case["length"], case["rshift"])

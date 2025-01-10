@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdio.h>
 
 // ********************************* Types **********************************
 
@@ -251,23 +252,90 @@ ssize_t calc_shift(size_t start, size_t end) {
     return right - left;
 }
 
+void print_byte_binary(unsigned char b) {
+    for (int i = 7; i >= 0; i--) {  // Start from MSB (bit 7)
+        printf("%d", (b >> i) & 1);
+    }
+}
+
+void print_short_binary(uint16_t s) {
+    for (int i = 15; i >= 0; i--) {  // Start from MSB (bit 15)
+        printf("%d", (s >> i) & 1);
+    }
+}
+
 void left_shift(char* array, size_t start, size_t end, size_t shift) {
+    printf("C left_shift: start=%zu, end=%zu, shift=%zu\n", start, end, shift);
+    printf("C before lshift: ");
+    for (size_t i = start; i < end; i++) {
+        print_byte_binary((unsigned char)array[i]);
+        printf(" ");
+    }
+    printf("\n");
+
     for (size_t i = start; i < end - 1; i++) {
-        uint16_t temp = ((array[i] << 8) | array[i + 1]) << shift;
-        temp >>= 8;
-        array[i] = temp;
+        printf("  i=%zu:\n", i);
+        printf("    byte[i]="); print_byte_binary((unsigned char)array[i]);
+        printf(" byte[i+1]="); print_byte_binary((unsigned char)array[i + 1]);
+        printf("\n");
+        
+        uint16_t temp = (uint16_t)((unsigned char)array[i]);
+        printf("    after load:     "); print_short_binary(temp);
+        printf("\n");
+        
+        temp = (temp << 8);
+        printf("    after << 8:     "); print_short_binary(temp);
+        printf("\n");
+        
+        temp = temp | (unsigned char)array[i + 1];
+        printf("    after |:        "); print_short_binary(temp);
+        printf("\n");
+        
+        temp = temp << shift;
+        printf("    after << shift: "); print_short_binary(temp);
+        printf("\n");
+        
+        temp = temp >> 8;
+        printf("    final >> 8:     "); print_short_binary(temp);
+        printf("\n");
+        
+        array[i] = (uint8_t)temp;
     }
 
     array[end - 1] <<= shift;
+
+    printf("C after lshift:  ");
+    for (size_t i = start; i < end; i++) {
+        print_byte_binary((unsigned char)array[i]);
+        printf(" ");
+    }
+    printf("\n");
 }
 
 void right_shift(char* array, size_t start, size_t end, size_t shift) {
+    printf("C right_shift: start=%zu, end=%zu, shift=%zu\n", start, end, shift);
+    printf("C before rshift: ");
+    for (size_t i = start; i < end; i++) {
+        print_byte_binary((unsigned char)array[i]);
+        printf(" ");
+    }
+    printf("\n");
+
     for (size_t i = end - 1; i > start; i--) {
-        uint16_t temp = ((array[i - 1] << 8) | array[i]) >> shift;
+        uint16_t temp = array[i - 1];
+        temp = (temp << 8) | array[i];
+        temp >>= shift;
         array[i] = temp;
     }
 
     array[start] >>= shift;
+
+    printf("C after rshift:  ");
+    for (size_t i = start; i < end; i++) {
+        print_byte_binary((unsigned char)array[i]);
+        printf(" ");
+    }
+    printf("\n");
 }
 
 void shift_bytes(char* array, size_t start, size_t end, ssize_t shift) {
@@ -295,25 +363,80 @@ void set_ends(char* array, bitarray_mask* lmask, bitarray_mask* rmask) {
 }
 
 void reverse(bitarray_t* const bitarray, const size_t start, const size_t end) {
+    printf("C reverse: start=%zu, end=%zu\n", start, end);
+    
+    printf("Raw bytes at start: ");
+    for (size_t i = 0; i < (bitarray_get_bit_sz(bitarray) + 7) / 8; i++) {
+        print_byte_binary((unsigned char)bitarray->buf[i]);
+        printf(" ");
+    }
+    printf("\n");
+    
     if (start + 1 >= end) {
         return;
     }
 
     bitarray_mask lmask, rmask;
-
     left_mask(&lmask, bitarray, start);
     right_mask(&rmask, bitarray, end);
+    
+    printf("C masks:\n");
+    printf("  start: mask="); print_byte_binary(lmask.mask); 
+    printf(", byte="); print_byte_binary(lmask.byte);
+    printf(", idx=%zu\n", lmask.byte_index);
+    
+    printf("  end  : mask="); print_byte_binary(rmask.mask);
+    printf(", byte="); print_byte_binary(rmask.byte);
+    printf(", idx=%zu\n", rmask.byte_index);
+
+    printf("C before reverse_byte: ");
+    for (size_t i = lmask.byte_index; i <= rmask.byte_index; i++) {
+        print_byte_binary((unsigned char)bitarray->buf[i]);
+        printf(" ");
+    }
+    printf("\n");
 
     for (size_t i = lmask.byte_index; i <= rmask.byte_index; i++) {
         reverse_byte(&bitarray->buf[i]);
     }
+    
+    printf("C after reverse_byte:  ");
+    for (size_t i = lmask.byte_index; i <= rmask.byte_index; i++) {
+        print_byte_binary((unsigned char)bitarray->buf[i]);
+        printf(" ");
+    }
+    printf("\n");
 
     reverse_array(bitarray->buf, lmask.byte_index, rmask.byte_index + 1);
+    
+    printf("C after reverse_array: ");
+    for (size_t i = lmask.byte_index; i <= rmask.byte_index; i++) {
+        print_byte_binary((unsigned char)bitarray->buf[i]);
+        printf(" ");
+    }
+    printf("\n");
 
-    shift_bytes(bitarray->buf, lmask.byte_index, rmask.byte_index + 1,
-                calc_shift(start, end));
+    ssize_t shift = calc_shift(start, end);
+    printf("C shift: direction=%s, amount=%zd\n", 
+           shift > 0 ? "LSHIFT" : "RSHIFT", labs(shift));
+    
+    shift_bytes(bitarray->buf, lmask.byte_index, rmask.byte_index + 1, shift);
+    
+    printf("C after shift_bytes:  ");
+    for (size_t i = lmask.byte_index; i <= rmask.byte_index; i++) {
+        print_byte_binary((unsigned char)bitarray->buf[i]);
+        printf(" ");
+    }
+    printf("\n");
 
     set_ends(bitarray->buf, &lmask, &rmask);
+    
+    printf("C final result:       ");
+    for (size_t i = lmask.byte_index; i <= rmask.byte_index; i++) {
+        print_byte_binary((unsigned char)bitarray->buf[i]);
+        printf(" ");
+    }
+    printf("\n");
 }
 
 void rotate(bitarray_t* const bitarray, const size_t bit_start,
