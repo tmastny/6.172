@@ -54,15 +54,19 @@ typedef struct bitarray_mask {
 } bitarray_mask;
 
 void left_mask(bitarray_mask* lmask, bitarray_t* const bitarray,
-               const size_t bit_index) {
+               size_t bit_index) {
     size_t byte_index = bit_index / 8;
     if (byte_index == bitarray->bit_sz / 8) {
         lmask->mask = 0;
         lmask->byte = 0;
-        // TODO: fix negative byte_index
+
+        // Note: if bit_sz < 8, then the byte index would be zero.
+        // But if bit_sz < 8, then we call rotate_ref instead of rotate.
         lmask->byte_index = bitarray->bit_sz / 8 - 1;
         return;
     }
+
+    bit_index %= 8;
 
     lmask->mask = 0xFF >> (8 - bit_index);
     lmask->mask = lmask->mask << (8 - bit_index);
@@ -259,7 +263,7 @@ void left_shift(char* array, size_t start, size_t end, size_t shift) {
 
 void right_shift(char* array, size_t start, size_t end, size_t shift) {
     for (size_t i = end - 1; i > start; i--) {
-        uint16_t temp = ((array[i] << 8) | array[i - 1]) >> shift;
+        uint16_t temp = ((array[i - 1] << 8) | array[i]) >> shift;
         array[i] = temp;
     }
 
@@ -331,12 +335,16 @@ void bitarray_rotate(bitarray_t* const bitarray, const size_t bit_offset,
         return;
     }
 
+    if (bit_right_amount == 0) {
+        return;
+    }
+
     if (bit_length == 0) {
         return;
     }
 
-    size_t bit_right_shift = modulo(bit_right_amount, bit_length);
-    bit_right_shift = bit_length - bit_right_shift;
+    ssize_t bit_right_shift = (ssize_t)(modulo(bit_right_amount, bit_length));
+    bit_right_shift = labs((ssize_t)(bit_length) - (ssize_t)(bit_right_shift));
 
     rotate(bitarray, bit_offset, bit_offset + bit_length, bit_right_shift);
 }

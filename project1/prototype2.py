@@ -81,8 +81,9 @@ def left_mask(s, index):
 
 
 def right_mask(s, index):
-    # TODO: fix negative byte_index
     if index % 8 == 0:
+        # Note: if the len(s) is 1, then this would be a negative byte_index
+        # which is impossible. But if len(s) is 1, then we call rotate_ref
         return 0, 0, index // 8 - 1
 
     byte_index = index // 8
@@ -430,5 +431,3 @@ if __name__ == "__main__":
         test_rotate()
     if run_all or args.test_random:
         test_rotate_random()
-
-test_rotate()
