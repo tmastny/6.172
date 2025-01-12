@@ -55,7 +55,7 @@ static bool compare_bitarrays(bitarray_t* ba1, bitarray_t* ba2) {
 }
 
 int main() {
-    srand(time(NULL));
+    srand(12345);
     int failures = 0;
     int tests = 0;
 
