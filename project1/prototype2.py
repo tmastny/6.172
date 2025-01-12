@@ -80,12 +80,13 @@ def left_mask(s, index):
     return mask, byte & mask, byte_index
 
 # string order:
-# byte: 10100000
-# mask: 00011111
+# byte: 01111100
+# mask: 10000000
+# idx:   1 
 
 # byte order:
-# byte: 00000101
-# mask: 11111000
+# byte: 00111110
+# mask: 00000001
 
 
 def right_mask(s, index):
@@ -359,7 +360,14 @@ def test_rotate():
             "length": 11,
             "rshift": 3,
         },
-
+        {
+            "name": "Test case 10",
+            "input": "00100111011111001",
+            "expected": "00100111111110010",
+            "index": 8,
+            "length": 9,
+            "rshift": 17,
+        },
     ]
 
     for case in test_cases:

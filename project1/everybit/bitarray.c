@@ -82,10 +82,10 @@ void left_mask(bitarray_mask* lmask, bitarray_t* const bitarray,
         return;
     }
 
-    bit_index %= 8;
 
-    lmask->mask = 0xFF >> (8 - bit_index);
-    lmask->mask = lmask->mask << (8 - bit_index);
+
+    bit_index %= 8;
+    lmask->mask = (1 << bit_index) - 1;
 
     lmask->byte = bitarray->buf[byte_index] & lmask->mask;
     lmask->byte_index = byte_index;
