@@ -37,8 +37,13 @@ bitarray_t* string_to_bitarray(const char* binary_string) {
 
 // Helper function to print bitarray as binary string
 void print_bitarray(bitarray_t* bitarray) {
-    for (size_t i = 0; i < bitarray_get_bit_sz(bitarray); i++) {
-        printf("%d", bitarray_get(bitarray, i) ? 1 : 0);
+    size_t length = bitarray_get_bit_sz(bitarray);
+    // Print bytes from MSB to LSB
+    for (size_t byte = 0; byte < (length + 7)/8; byte++) {
+        // Print bits within each byte from MSB to LSB
+        for (size_t bit = 0; bit < 8 && (byte * 8 + bit) < length; bit++) {
+            printf("%d", bitarray_get(bitarray, byte * 8 + (7 - bit)) ? 1 : 0);
+        }
     }
     printf("\n");
 }

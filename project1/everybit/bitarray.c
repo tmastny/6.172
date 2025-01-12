@@ -253,13 +253,13 @@ ssize_t calc_shift(size_t start, size_t end) {
 }
 
 void print_byte_binary(unsigned char b) {
-    for (int i = 7; i >= 0; i--) {  // Start from MSB (bit 7)
+    for (int i = 0; i < 8; i++) {  // Start from LSB (bit 0)
         printf("%d", (b >> i) & 1);
     }
 }
 
 void print_short_binary(uint16_t s) {
-    for (int i = 15; i >= 0; i--) {  // Start from MSB (bit 15)
+    for (int i = 0; i < 16; i++) {  // Start from LSB (bit 0)
         printf("%d", (s >> i) & 1);
     }
 }
@@ -279,30 +279,15 @@ void left_shift(char* array, size_t start, size_t end, size_t shift) {
         printf(" byte[i+1]="); print_byte_binary((unsigned char)array[i + 1]);
         printf("\n");
         
-        uint16_t temp = (uint16_t)((unsigned char)array[i]);
-        printf("    after load:     "); print_short_binary(temp);
+        uint16_t temp = (uint16_t)((unsigned char)array[i]);  
+        temp |= (((uint16_t)((unsigned char)array[i + 1])) << 8);  
+        temp >>= shift;  
+        array[i] = temp;  
+        printf("    array[i]="); print_byte_binary(array[i]);
         printf("\n");
-        
-        temp = (temp << 8);
-        printf("    after << 8:     "); print_short_binary(temp);
-        printf("\n");
-        
-        temp = temp | (unsigned char)array[i + 1];
-        printf("    after |:        "); print_short_binary(temp);
-        printf("\n");
-        
-        temp = temp << shift;
-        printf("    after << shift: "); print_short_binary(temp);
-        printf("\n");
-        
-        temp = temp >> 8;
-        printf("    final >> 8:     "); print_short_binary(temp);
-        printf("\n");
-        
-        array[i] = (uint8_t)temp;
     }
 
-    array[end - 1] <<= shift;
+    array[end - 1] = (char)((unsigned char)array[end - 1] >> shift);
 
     printf("C after lshift:  ");
     for (size_t i = start; i < end; i++) {
@@ -322,13 +307,13 @@ void right_shift(char* array, size_t start, size_t end, size_t shift) {
     printf("\n");
 
     for (size_t i = end - 1; i > start; i--) {
-        uint16_t temp = array[i - 1];
-        temp = (temp << 8) | array[i];
-        temp >>= shift;
-        array[i] = temp;
+        uint16_t temp = ((uint16_t)((unsigned char)array[i])) << 8;  
+        temp |= (uint16_t)((unsigned char)array[i - 1]);                    
+        temp <<= shift;  
+        array[i] = temp >> 8;  
     }
 
-    array[start] >>= shift;
+    array[start] = (char)((unsigned char)array[start] << shift);
 
     printf("C after rshift:  ");
     for (size_t i = start; i < end; i++) {
