@@ -54,16 +54,31 @@ typedef struct bitarray_mask {
     size_t byte_index;
 } bitarray_mask;
 
+void print_byte_binary(unsigned char b) {
+    for (int i = 0; i < 8; i++) {  // Start from LSB (bit 0)
+        printf("%d", (b >> i) & 1);
+    }
+}
+
+void print_short_binary(uint16_t s) {
+    for (int i = 0; i < 16; i++) {  // Start from LSB (bit 0)
+        printf("%d", (s >> i) & 1);
+    }
+}
+
 void left_mask(bitarray_mask* lmask, bitarray_t* const bitarray,
                size_t bit_index) {
+    printf("C left_mask: bit_index=%zu, bit_sz=%zu\n", bit_index, bitarray->bit_sz);
+
     size_t byte_index = bit_index / 8;
-    if (byte_index == bitarray->bit_sz / 8) {
+    size_t byte_array_length = (bitarray->bit_sz / 8) + 1;
+    if (byte_index == byte_array_length) {
         lmask->mask = 0;
         lmask->byte = 0;
 
         // Note: if bit_sz < 8, then the byte index would be zero.
         // But if bit_sz < 8, then we call rotate_ref instead of rotate.
-        lmask->byte_index = bitarray->bit_sz / 8 - 1;
+        lmask->byte_index = byte_array_length - 1;
         return;
     }
 
@@ -100,8 +115,7 @@ void right_mask(bitarray_mask* rmask, bitarray_t* const bitarray,
     print_byte_binary((unsigned char)bitarray->buf[byte_index]);
     printf("\n");
 
-    bit_index = 8 - bit_index % 8;
-    rmask->mask = 0xFF >> (8 - bit_index);
+    rmask->mask = 0xFF << (bit_index % 8);
     rmask->byte = bitarray->buf[byte_index] & rmask->mask;
     rmask->byte_index = byte_index;
 }
@@ -257,18 +271,6 @@ ssize_t calc_shift(size_t start, size_t end) {
     ssize_t left = start % 8;
     ssize_t right = (8 - end % 8) % 8;
     return right - left;
-}
-
-void print_byte_binary(unsigned char b) {
-    for (int i = 0; i < 8; i++) {  // Start from LSB (bit 0)
-        printf("%d", (b >> i) & 1);
-    }
-}
-
-void print_short_binary(uint16_t s) {
-    for (int i = 0; i < 16; i++) {  // Start from LSB (bit 0)
-        printf("%d", (s >> i) & 1);
-    }
 }
 
 void left_shift(char* array, size_t start, size_t end, size_t shift) {

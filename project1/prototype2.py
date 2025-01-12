@@ -79,6 +79,14 @@ def left_mask(s, index):
     mask = mask << (8 - bit_index)
     return mask, byte & mask, byte_index
 
+# string order:
+# byte: 10100000
+# mask: 00011111
+
+# byte order:
+# byte: 00000101
+# mask: 11111000
+
 
 def right_mask(s, index):
     if index % 8 == 0:
@@ -168,6 +176,8 @@ def reverse(s, start, end):
     print(f"\nPY reverse: start={start}, end={end}")
     if start + 1 >= end:
         return
+
+    print("Raw bytes at start: ", [f"{b:08b}" for b in s])
 
     start_mask = left_mask(s, start)
     end_mask = right_mask(s, end)
