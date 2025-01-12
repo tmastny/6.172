@@ -78,6 +78,8 @@ void left_mask(bitarray_mask* lmask, bitarray_t* const bitarray,
 
 void right_mask(bitarray_mask* rmask, bitarray_t* const bitarray,
                 size_t bit_index) {
+    printf("C right_mask: bit_index=%zu, bit_sz=%zu\n", bit_index, bitarray->bit_sz);
+                    
     if (bit_index % 8 == 0) {
         rmask->mask = 0;
         rmask->byte = 0;
@@ -86,12 +88,17 @@ void right_mask(bitarray_mask* rmask, bitarray_t* const bitarray,
     }
 
     size_t byte_index = bit_index / 8;
-    if (byte_index == bitarray->bit_sz / 8) {
+    size_t byte_array_length = (bitarray->bit_sz / 8) + 1;
+    if (byte_index == byte_array_length) {
         rmask->mask = 0;
         rmask->byte = 0;
-        rmask->byte_index = bit_index / 8 - 1;
+        rmask->byte_index = byte_array_length - 1;
         return;
     }
+
+    printf("C right_mask: byte: ");
+    print_byte_binary((unsigned char)bitarray->buf[byte_index]);
+    printf("\n");
 
     bit_index = 8 - bit_index % 8;
     rmask->mask = 0xFF >> (8 - bit_index);
@@ -361,6 +368,7 @@ void reverse(bitarray_t* const bitarray, const size_t start, const size_t end) {
         return;
     }
 
+    printf("C masks: start=%zu, end=%zu\n", start, end);
     bitarray_mask lmask, rmask;
     left_mask(&lmask, bitarray, start);
     right_mask(&rmask, bitarray, end);
