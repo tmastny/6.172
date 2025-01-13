@@ -316,26 +316,6 @@ void left_shift(char* array, size_t start, size_t end, size_t shift) {
     // Save the boundary byte before uint64_t operations
     unsigned char boundary_byte = array[uint64_end - 1];
 
-    DEBUG_CODE(
-        printf("\nBoundary debug (before uint64_t ops):\n");
-        printf("  bytes from %zu to %zu: ", uint64_end - 1, end);
-        for (size_t i = uint64_end - 1; i < end; i++) {
-            print_byte_binary((unsigned char)array[i]);
-            printf(" ");
-        }
-        printf("\n");
-    );
-
-    DEBUG_CODE(
-        printf("\nUINT64 section (bytes %zu to %zu):\n", start, uint64_end - 1);
-        printf("Before: ");
-        for (size_t i = start; i < uint64_end; i++) {
-            print_byte_binary((unsigned char)array[i]);
-            printf(" ");
-        }
-        printf("\n");
-    );
-
     // Only process up to the second-to-last uint64_t chunk
     for (size_t i = start; i + 16 <= uint64_end; i += 8) {
         uint64_t current = *(uint64_t*)(&array[i]);
@@ -389,17 +369,6 @@ void left_shift(char* array, size_t start, size_t end, size_t shift) {
     );
 }
 
-  // bytes from 18 to 25: 10100011 11000000 01010010 11100110 01010001 11010010 00101100
-  // bytes from 18 to 25: 10100011 11000000 01010010 11100110 01010001 11010010 00101100
-  // bytes from 18 to 25: 10100011110000000101001011100110010100011101001000101100
-  // bytes from 18 to 25:  01000111100000001010010111001100101000111010010001011000
-
-/*
-Your result:     [ 1 0 1 0 1 0 0 0 1 0 0 1 0 0 0 1 0 1 0 0 1 0 1 1 1 0 0 1 1 0 0 0 0 1 1 1 0 0 0 1 1 0 1 0 1 0 0 1 1 0 1 0 0 1 0 1 1 0 1 0 0 0 0 0 1 0 1 0 1 0 1 1 0 1 0 0 1 0 0 1 1 0 1 0 0 0 0 0 0 0 1 1 1 0 1 0 1 0 1 1 1 1 0 0 1 0 0 1 1 1 0 0 0 0 0 1 1 1 0 1 0 0 1 1 0 1 1 1 0 0 0 0 0 1 1 0 0 1 0 0 1 1 1 1 1 0 0 1 0 1 0 1 1 0 0 0 1 0 1 1 0 1 0 1 0 1 1 0 1 0 0 0 1 0 0 1 0 1 1 1 0 0 0 1 0 1 0 0 1 1 0 0 1 1 1 0 1 0 0 1 0 1 0 0 0 0 0 0 0 1 1 1 1 0 0 0 1 0 1 0 0 0 0 1 0 0 1 1 0 0 1 0 0 0 1 0 0 1 0 0 0 1 0 1 1 0 0 1 0 0 0 0 1 1 0 0 1 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 1 0 0 1 0 0 0 1 1 1 0 0 0 0 1 0 0 0 1 1 0 1 0 0 1 1 0 1 0 1 1 1 1 1 1 1 1 1 0 1 0 0 0 0 0 0 1 0 0 1 1 1 1 1 0 0 0 0 1 0 0 1 1 0 1 0 1 0 1 1 0 0 1 0 1 0 1 1 1 0 1 1 0 1 0 0 1 1 0 1 0 1 0 1 0 0 1 1 0 0 1 0 0 0 0 0 0 1 1 0 0 0 1 1 0 1 0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0 0 0 1 0 1 1 1 1 0 0 0 0 1 1 0 0 0 1 1 1 0 1 1 0 1 1 0 1 1 1 1 1 0 1 1 0 1 1 1 0 0 0 0 0 0 1 1 0 1 0 1 0 0 0 0 0 0 1 0 1 0 1 1 0 0 1 0 0 0 0 1 1 1 0 1 0 1 0 0 0 0 0 0 1 1 1 1 1 1 1 0 1 0 1 0 1 1 0 0 1 1 0 0 0 1 0 1 0 1 1 0 0 0 0 1 0 1 1 1 1 0 0 0 1 1 1 1 1 1 1 0 1 0 0 0 0 1 1 1 0 1 0 1 1 0 0 0 1 0 1 1 1 1 0 1 0 0 1 1 1 1 1 0 1 0 0 1 0 1 1 0 0 0 0 0 1 0 0 1 1 1 1 1 0 0 1 1 0 0 0 0 0 1 1 1 0 0 0 0 1 0 1 1 0 1 0 0 1 1 0 1 1 0 0 0 0 1 1 0 0 0 0 0 1 0 1 1 1 1 1 0 0 0 1 0 0 1 1 0 1 1 1 1 0 0 1 0 1 1 1 1 0 1 0 0 0 1 0 0 0 0 1 0 1 ]
-Expected result: [ 1 0 1 0 1 0 0 0 1 0 0 1 0 0 0 1 0 1 0 0 1 0 1 1 1 0 0 1 1 0 0 0 0 1 1 1 0 0 0 1 1 0 1 0 1 0 0 1 1 0 1 0 0 1 0 1 1 0 1 0 0 0 0 0 1 0 1 0 1 0 1 1 0 1 0 0 1 0 0 1 1 0 1 0 0 0 0 0 0 0 1 1 1 0 1 0 1 0 1 1 1 1 0 0 1 0 0 1 1 1 0 0 0 0 0 1 1 1 0 1 0 0 1 1 0 1 1 1 0 0 0 0 0 1 1 0 0 1 0 0 1 1 1 1 1 0 0 1 0 1 0 1 1 0 0 0 1 0 1 1 0 1 0 1 0 1 1 0 1 0 0 0 1 0 0 1 0 1 1 1 0 0 0 1 0 1 0 0 1 1 0 0 1 1 1 0 1 0 0 1 0 1 0 0 0 0 0 0 0 1 1 1 1 0 0 0 1 0 1 1 0 0 0 0 1 0 0 1 1 0 0 1 0 0 0 1 0 0 1 0 0 0 1 0 1 1 0 0 1 0 0 0 0 1 1 0 0 1 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 1 0 0 0 1 1 1 0 0 0 0 1 0 0 0 1 1 0 1 0 0 1 1 0 1 0 1 1 1 1 1 1 1 1 1 0 1 0 0 0 0 0 0 1 0 0 1 1 1 1 1 0 0 0 0 1 0 0 1 1 0 1 0 1 0 1 1 0 0 1 0 1 0 1 1 1 0 1 1 0 1 0 0 1 1 0 1 0 1 0 1 0 0 1 1 0 0 1 0 0 0 0 0 0 1 1 0 0 0 1 1 0 1 0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0 0 0 1 0 1 1 1 1 0 0 0 0 1 1 0 0 0 1 1 1 0 1 1 0 1 1 0 1 1 1 1 1 0 1 1 0 1 1 1 0 0 0 0 0 0 1 1 0 1 0 1 0 0 0 0 0 0 1 0 1 0 1 1 0 0 1 0 0 0 0 1 1 1 0 1 0 1 0 0 0 0 0 0 1 1 1 1 1 1 1 0 1 0 1 0 1 1 0 0 1 1 0 0 0 1 0 1 0 1 1 0 0 0 0 1 0 1 1 1 1 0 0 0 1 1 1 1 1 1 1 0 1 0 0 0 0 1 1 1 0 1 0 1 1 0 0 0 1 0 1 1 1 1 0 1 0 0 1 1 1 1 1 0 1 0 0 1 0 1 1 0 0 0 0 0 1 0 0 1 1 1 1 1 0 0 1 1 0 0 0 0 0 1 1 1 0 0 0 0 1 0 1 1 0 1 0 0 1 1 0 1 1 0 0 0 0 1 1 0 0 0 0 0 1 0 1 1 1 1 1 0 0 0 1 0 0 1 1 0 1 1 1 1 0 0 1 0 1 1 1 1 0 1 0 0 0 1 0 0 0 0 1 0 1 ]
-
-*/ 
-
 void right_shift(char* array, size_t start, size_t end, size_t shift) {
     DEBUG_CODE(
         printf("C right_shift: start=%zu, end=%zu, shift=%zu\n", start, end, shift);
@@ -411,14 +380,54 @@ void right_shift(char* array, size_t start, size_t end, size_t shift) {
         printf("\n");
     );
 
-    for (size_t i = end - 1; i > start; i--) {
-        uint16_t temp = ((uint16_t)((unsigned char)array[i])) << 8;  
-        temp |= (uint16_t)((unsigned char)array[i - 1]);                    
-        temp <<= shift;  
-        array[i] = temp >> 8;  
+    // Early return if range is too small for uint64_t operations
+    if (end - start < 16) {
+        for (size_t i = end - 1; i > start; i--) {
+            uint16_t temp = ((uint16_t)((unsigned char)array[i])) << 8;
+            temp |= (uint16_t)((unsigned char)array[i - 1]);
+            temp <<= shift;
+            array[i] = temp >> 8;
+        }
+        array[start] = (char)((unsigned char)array[start] << shift);
+        return;
     }
 
-    array[start] = (char)((unsigned char)array[start] << shift);
+    // Calculate where our uint64_t operations will start
+    size_t uint64_start = start + ((end - start) % 8);  // Round up to multiple of 8
+
+    // Save the boundary byte before uint64_t operations
+    unsigned char boundary_byte = array[uint64_start];
+
+    // Only process up to the second-to-last uint64_t chunk
+    for (size_t i = end - 8; i >= uint64_start + 8; i -= 8) {
+        uint64_t current = *(uint64_t*)(&array[i]);
+        uint64_t next = *(uint64_t*)(&array[i - 8]);
+        uint64_t result = (current << shift) | (next >> (64 - shift));
+        *(uint64_t*)(&array[i]) = result;
+    }
+
+    // Handle the first uint64_t chunk by itself
+    uint64_t first = *(uint64_t*)(&array[uint64_start]);
+    *(uint64_t*)(&array[uint64_start]) = first << shift;
+
+    // Handle the boundary byte
+    if (uint64_start > start) {
+        uint16_t temp = ((uint16_t)(boundary_byte)) << 8;
+        temp |= (uint16_t)((unsigned char)array[uint64_start - 1]);
+        temp <<= shift;
+        array[uint64_start] = temp >> 8;
+
+        // Now handle the remaining bytes
+        for (size_t i = uint64_start - 1; i > start; i--) {
+            temp = ((uint16_t)((unsigned char)array[i])) << 8;
+            temp |= (uint16_t)((unsigned char)array[i - 1]);
+            temp <<= shift;
+            array[i] = temp >> 8;
+        }
+
+        // Handle very first byte
+        array[start] = (char)((unsigned char)array[start] << shift);
+    }
 
     DEBUG_CODE(
         printf("C after rshift:  ");
