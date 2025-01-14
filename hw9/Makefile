@@ -1,15 +1,16 @@
 all: hashtable undef user
 #DBG=-DVERBOSE
 CC=clang
-CFLAGS=-std=gnu99 -gdwarf-3 -Wall -O1 -fdetach
+CFLAGS=-std=gnu99 -gdwarf-3 -Wall -O1
 LDFLAGS += -ldl
 REPLAY=0
 # non-cilk, single-threaded only record replay support with gdb 7.5
 ifeq ($(REPLAY),0)
-hashtable: CFLAGS += -fcilkplus -DCILK
-hashtable: LDFLAGS +=-lcilkrts
-hashlock-unit: CFLAGS += -fcilkplus -DCILK
-hashlock-unit: LDFLAGS +=-lcilkrts
+# Commenting out OpenMP flags
+#hashtable: CFLAGS += -fopenmp
+#hashtable: LDFLAGS += -fopenmp
+#hashlock-unit: CFLAGS += -fopenmp
+#hashlock-unit: LDFLAGS += -fopenmp
 endif
 hashtable: LDFLAGS += -lpthread
 hashlock-unit: LDFLAGS += -lpthread
@@ -23,10 +24,11 @@ hashtable1000: ./hashtable
 
 # XXX modify this target so that 1000 runs all succeed
 hashtable1000-good: ./hashtable
-	bash -c "for((i=0;i<1000;i++)) do ./hashtable; done"
+	bash -c "for((i=0;i<1000;i++)) do setarch x86_64 -R ./hashtable 1 100; done"
 # XXX modify this target so the program always fails
 hashtable1-bad: ./hashtable
-	./hashtable
+	setarch x86_64 -R ./hashtable 1 1
+ 
 
 hashtable-mt: ./hashtable
 	./hashtable 10
@@ -64,6 +66,6 @@ hashtable: hashtable.c hashlock.c common.h
 	$(CC) -o $@ $(DBG) $(CFLAGS) $^ $(LDFLAGS)
 
 hashlock-unit: hashlock.c Makefile
-	$(CC) -o $@ -Wall -g -fdetach -DUNIT_TEST $< $(LDFLAGS)
+	$(CC) -o $@ -Wall -g -DUNIT_TEST $< $(LDFLAGS)
 
 testall: hashtable10 hashlock-unit undef-all
