@@ -72,6 +72,7 @@ void hashtable_insert(void* p, int size) {
     }
     /* conflict, look for next item */
     s++;
+    s %= TABLESIZE;
   } while (1);
 }
 
