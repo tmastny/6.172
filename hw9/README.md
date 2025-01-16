@@ -1,5 +1,50 @@
 # hw9
 
+## CAS notes
+
+CAS acquires an entire cache line. So it might be helpful
+to either
+* think about padding as in our hashlock tests
+* do a non-atomic check before running CAS with short-circuiting
+
+```c
+while (
+    head != node->next ||      // Head changed - don't bother with CAS
+    !CAS(&head, node->next, node));  // Head same - try CAS
+
+if (
+    head == current &&              // Head still what we expect
+    CAS(&head, current, current->next))  // Try to update
+```
+
+Possible to starve with CAS, but unlikely. 
+The idea is that other threads, due to contention and bad luck,
+might prempt or block a thread from ever successfully running CAS.
+
+### ABA
+
+```bash
+# thread 1 pop A
+# - old_head = A
+# - new_head = B
+A -> B -> C
+
+# thread 2 prempts thread 1
+# pops A
+B -> C
+# pops B
+C
+# pushes A
+A -> C
+
+# thread 1 resumes
+# head == A, so CAS succeeds
+B
+
+# but the old "true" state was
+A -> C
+```
+
 ## write-up 4
 
 The problem with linear probing is that whenever a key collides, the final position of the entry will depend on which key was inserted first. 
