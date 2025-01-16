@@ -1,5 +1,25 @@
 # hw9
 
+## write-up 3
+
+One method could be that that hashtable stores pointers to the entries rather than the entries themselves. This might make data access a little more inefficient, but would require only one swap. 
+
+The trick is to avoid dynamic alloctaion is to create
+an `entries` array and `hashtable` array like this:
+```c
+entry_t entries[TABLESIZE];  // Pre-allocated array
+entry_t* hashtable[TABLESIZE];  // Array of pointers into entries
+```
+with an `init` function that initializes the `hashtable` array
+to point to the corresponding element in the `entries` array.
+
+## write-up 2
+
+Global contention with hash table lock?
+We could make that lockless at least.
+But that point of contention is much shorter than the 
+rowlock contention.
+
 ## write-up 1
 
 False sharing!

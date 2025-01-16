@@ -138,13 +138,16 @@ void hashtable_insert_lockless(void* p, int size) {
   int s = hash_func(p);
   /* open addressing with linear probing */
   do {
-    if (!ht.hashtable[s].ptr) {
-      ht.hashtable[s].ptr = p;
-      ht.hashtable[s].size = size;
+    if (InterlockedCompareExchange64((uint64_t*)&ht.hashtable[s].ptr, (uint64_t)p, 0) == 0) {
+      uint32_t old;
+      do {
+        old = (uint32_t)ht.hashtable[s].size;
+      } while (InterlockedCompareExchange32((uint32_t*)&ht.hashtable[s].size, (uint32_t)size, old) != old);
       break;
     }
     /* conflict, look for next item */
     s++;
+    s %= TABLESIZE;
   } while (1);
 }
 
@@ -217,8 +220,8 @@ void hashtable_fill(int n) {
     // test one of these below
     // hashtable_insert(p, sz);
     // hashtable_insert_locked(p, sz);
-    hashtable_insert_fair(p, sz);
-    // hashtable_insert_lockless(p, sz);
+    // hashtable_insert_fair(p, sz);
+    hashtable_insert_lockless(p, sz);
   }
 }
 
