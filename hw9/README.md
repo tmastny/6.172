@@ -1,6 +1,65 @@
 # hw9
 
+## write-up 1
+
+False sharing!
+
+Recall cache coherency policies:
+* CPU-0 writes to a byte in a cache line. 
+* that cache line is marked as M, modified.
+* the memory controller marks that cache line as I, invalid
+  for all other CPUs.
+* Later, CPU-1 reads the same cache line and sees it as invalid.
+* the memory controll then requests the cache line from 
+  CPU-0 and both are marked as S for shared. 
+
+Problem: two separate threads working on independent pieces of
+data in the same cache line. Even though there is no mutex sync,
+they have to wait for the cache coherency policy each write. 
+Example:
+* thread A writes to cache line, becomes M
+* thread B reads the same cache line sees line as I
+* thread B has to wait for the cache line to be synced
+  from CPU-0 to CPU-1
+
+Assume that a mutex is 40 bytes. One idea is to pad the mutexes,
+so each is on a separate cache line. So instead of 16 * 40 = 640 bytes,
+we use 16 * 64 = 1024 bytes, but each mutex is separate, 
+separate threads locking on different mutexes never have to wait for
+cache coherency.
+
+One interesting note: if we used `rowlock` how many mutexes would we get for
+1024 bytes? 1024 / 40 = 25. So the extra memory from padding isn't even that much,
+especially since those mutexes could still be false sharing.
+
+### false sharing benchmark
+
+```bash
+clang -o mutex_bench mutex_bench.c -fopenmp -lpthread
+./mutex_bench
+
+# w/0 CPU affinity
+Testing with 2 threads:
+Average time with regular locks: 0.698022 seconds
+Average time with padded locks: 0.631817 seconds
+Difference: 0.066205 seconds
+
+Testing with 4 threads:
+Average time with regular locks: 0.752809 seconds
+Average time with padded locks: 0.712890 seconds
+Difference: 0.039919 seconds
+
+Testing with 8 threads:
+Average time with regular locks: 1.614843 seconds
+Average time with padded locks: 1.600959 seconds
+Difference: 0.013884 seconds
+```
+
 ## item3 
+
+Linear probing was running out the array bounds.
+
+### attempts
 
 Record and replay:
 ```bash

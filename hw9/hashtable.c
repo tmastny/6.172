@@ -121,6 +121,7 @@ void hashtable_insert_fair(void* p, int size) {
     int olds = s;
     /* conflict, look for next item */
     s++;
+    s %= TABLESIZE;
     /* fair lock, hold the old lock, before grabbing the new one */
     hashlock_lock(s);
     hashlock_unlock(olds);
@@ -214,9 +215,9 @@ void hashtable_fill(int n) {
     int sz = random() % 1000;
     char* p = malloc(sz);
     // test one of these below
-    hashtable_insert(p, sz);
+    // hashtable_insert(p, sz);
     // hashtable_insert_locked(p, sz);
-    // hashtable_insert_fair(p, sz);
+    hashtable_insert_fair(p, sz);
     // hashtable_insert_lockless(p, sz);
   }
 }
@@ -249,16 +250,19 @@ int main(int argc, char* argv[]) {
   printf("&entries = %p &last=%p\n", &ht.entries, &ht.hashtable[TABLESIZE]);
 #endif
 
-#ifdef CILK
-  int i;
-  for (i = 1; i < threads; i++) {
-    cilk_spawn hashtable_fill(n / threads);
+#ifdef _OPENMP
+  #pragma omp parallel
+  {
+    #pragma omp single
+    {
+      for (int i = 1; i < threads; i++) {
+        #pragma omp task
+        hashtable_fill(n / threads);
+      }
+      hashtable_fill(n / threads);
+      #pragma omp taskwait
+    }
   }
-#endif
-  hashtable_fill(n / threads);
-
-#ifdef CILK
-  cilk_sync;
 #endif
 
 #ifdef VERY_VERBOSE

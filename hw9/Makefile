@@ -6,11 +6,11 @@ LDFLAGS += -ldl
 REPLAY=0
 # non-cilk, single-threaded only record replay support with gdb 7.5
 ifeq ($(REPLAY),0)
-# Commenting out OpenMP flags
-#hashtable: CFLAGS += -fopenmp
-#hashtable: LDFLAGS += -fopenmp
-#hashlock-unit: CFLAGS += -fopenmp
-#hashlock-unit: LDFLAGS += -fopenmp
+# Cilk Plus flags
+hashtable: CFLAGS += -fopenmp
+hashtable: LDFLAGS += -fopenmp
+hashlock-unit: CFLAGS += -fopenmp
+hashlock-unit: LDFLAGS += -fopenmp
 endif
 hashtable: LDFLAGS += -lpthread
 hashlock-unit: LDFLAGS += -lpthread
@@ -33,7 +33,14 @@ hashtable1-bad: ./hashtable
 hashtable-mt: ./hashtable
 	./hashtable 10
 hashtable-mt1000: ./hashtable
-	bash -c "for((i=0;i<1000;i++)) do ./hashtable 10; done"
+	bash -c 'for((i=0;i<1000;i++)); do \
+		if ! ./hashtable 10 2>&1 | grep -q "failed"; then \
+			continue; \
+		else \
+			echo "Failed at iteration $$i"; \
+			exit 1; \
+		fi; \
+	done'
 
 whoami: ./user
 	@./user
