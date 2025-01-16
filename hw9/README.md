@@ -1,5 +1,20 @@
 # hw9
 
+## write-up 4
+
+The problem with linear probing is that whenever a key collides, the final position of the entry will depend on which key was inserted first. 
+
+So my first thought was the linked-list style hashtable, because then every key that collides will still be in the same bucket. BUT the order of the linked list will change, so that seems to violate "final state" requirement.
+
+The question is ambigious in my opinion, but one option is the
+deterministic hashtable described here:
+https://wiki.mozilla.org/User:Jorend/Deterministic_hash_tables#:~:text=A%20deterministic%20hash%20table%20proposed,than%20the%20open%20addressing%20implementations.
+
+Funny enough, it uses the same idea from write-up 3. 
+The difference is that we keep `entries` in insertion order,
+so we can always iterate over the hashtable in a deterministic
+order.
+
 ## write-up 3
 
 One method could be that that hashtable stores pointers to the entries rather than the entries themselves. This might make data access a little more inefficient, but would require only one swap. 
